@@ -1,8 +1,12 @@
 !defining global variables for
 !2nd order classsic isoparametric FEM
-module fem_order2
 
-    implicit none
+module fem_order2
+#include <petsc/finclude/petscvec.h>
+#include <petsc/finclude/petscmat.h>
+    use petscvec
+    use petscmat
+    !use mpi
 
     type fem_element
         integer(kind=4)           :: num_node ! M
@@ -439,6 +443,7 @@ contains
 !https://tecplot.azureedge.net/products/360/current/360_data_format_guide.pdf
     subroutine output_plt_mesh(path, title)
         use globals
+
         implicit none
         character(80), intent(in) :: path
         integer(kind = 4) :: buffer_INT32
@@ -447,6 +452,11 @@ contains
         integer :: num_node_in_elem, i
         integer(kind = 4) :: aux_node(8)
         real(kind = 8) :: minCoord, maxCoord
+        ! integer rank, ierr
+        ! call MPI_COMM_RANK(MPI_COMM_WORLD,rank, ierr)
+        ! if (rank .ne. 0) then
+        !     return
+        ! end if
 
         if (.not. allocated(COORD)) then !using coord allocated to
             print *,"error::output_plt_mesh::coord data not allocated when calling output mesh"
@@ -548,6 +558,11 @@ contains
         real(kind = 8), intent(in) :: DATAin(:)
         character(*), intent(in) :: DATAname
         integer nmaxloc(1), nminloc(1)
+        ! integer rank, ierr
+        ! call MPI_COMM_RANK(MPI_COMM_WORLD,rank, ierr)
+        ! if (rank .ne. 0) then
+        !     return
+        ! end if
 
         if (.not. allocated(COORD)) then !using coord allocated to
             print *,"error::output_plt_mesh::coord data not allocated when calling output mesh"
@@ -569,7 +584,7 @@ contains
         call write_binary_plt_string(headhead, IOUT2)
         write(IOUT2) -1_4, -1_4, 0.0_8, -1_4, 5_4 !ParentZone, StrandID, SolutionTime, DZC, zoneType=FEBRICK
         write(IOUT2) 1_4, 1_4 !specifyVarLocation
-        write(IOUT2) 0_4, 0_4 
+        write(IOUT2) 0_4, 0_4
         buffer_INT32 = size(COORD,2)
         write(IOUT2) buffer_INT32 !numpoints
         buffer_INT32 = size(CELL)
