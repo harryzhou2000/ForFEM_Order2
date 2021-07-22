@@ -11,6 +11,7 @@ program addNumbers
     character(10) :: outtitle = "goodstart"
     real(8) :: D(3,3) = reshape((/1, 2, 3, 5 ,5, 6, 1, 8, 9/),(/3,3/))
     integer ierr, rank
+    
 
     call PetscInitialize(PETSC_NULL_CHARACTER,ierr)
     call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
@@ -21,10 +22,12 @@ program addNumbers
     FILEINP = "./mark2_external.neu"
     outfile = "./out2.plt"
     call readgfile
-
+    call initializeLib
+    call getVolumes
     !serial part
     if(rank == 0 )then
         call output_plt_mesh(outfile, outtitle)
+        call output_plt_scalar("./out2_data1.plt", "goodstart",cell_volumes,"cell_volume")
 
         a = -12.5
         b = 15.0
@@ -32,13 +35,10 @@ program addNumbers
         c = a
         someInts(1) = 1; 
         someInts(2:4) = (/1,2,3/)
-        call initializeLib
-        call getVolumes
-        call output_plt_scalar("./out2_data1.plt", "goodstart",cell_volumes,"cell_volume")\
+
         ! print*,D
         ! print*, matmul(directInverse3x3(D),D)
     endif
-
 
     if(rank == 0) then
         print *, 'The total is ', result , ' cis ', c

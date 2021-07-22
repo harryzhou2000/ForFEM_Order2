@@ -8,6 +8,11 @@ module fem_order2
     use petscmat
     !use mpi
 
+    type(tMat) :: Aelas !stiffness for elasticity
+    type(tVec) :: Pelas !load Vector for elasticity
+    type(tMat) :: Ather !stiffness for thermal
+    type(tVec) :: Pther !load Vector for thermal
+
     type fem_element
         integer(kind=4)           :: num_node ! M
         integer(kind=4)           :: num_intpoint ! R
@@ -631,4 +636,41 @@ contains
 
 !     end subroutine output_plt_mesh
 ! end interface
+
+!!!!!!!!!!!!!!!!! subroutines invoking PETSC
+
+    !after readgrid initializeLib
+    subroutine SetUpThermal
+
+    end subroutine
+
+    !after readgrid initializeLib
+    subroutine SetUpElasticity
+
+    end subroutine
+
+    subroutine ClearThermal
+
+    end subroutine
+
+    subroutine ClearElasticity
+
+    end subroutine
+
+    subroutine ConstructThermal
+
+    end subroutine
+
+    subroutine ConstructElasticity
+
+    end subroutine
+
+    subroutine SolveThermal
+
+    end subroutine
+
+    subroutine SolveElasticity
+
+    end subroutine
+
 end module
