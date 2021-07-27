@@ -1,8 +1,11 @@
 program addNumbers
-#include <petsc/finclude/petscksp.h>
+!#include <petsc/finclude/petscksp.h>
+#include <petsc/finclude/petscsys.h>
+
     use globals
     use fem_order2
-    use petscksp
+    !use petscksp
+    use petscsys
     implicit none
     real :: a, b, result
     integer :: c; 
@@ -13,8 +16,10 @@ program addNumbers
     integer ierr, rank
     
 
-    call PetscInitialize(PETSC_NULL_CHARACTER,ierr)
-    call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
+    call PetscInitialize(PETSC_NULL_CHARACTER,ierr); 
+    CHKERRA(ierr)
+    call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr); 
+    CHKERRA(ierr)
     if(rank == 0) then
         print*,"This is a PETSC_NULL_CHARACTER: ",PETSC_NULL_CHARACTER
     endif
@@ -44,5 +49,6 @@ program addNumbers
         print *, 'The total is ', result , ' cis ', c
     endif
 
-    call PetscFinalize(ierr)
+    call PetscFinalize(ierr); 
+    CHKERRA(ierr)
 end program addNumbers

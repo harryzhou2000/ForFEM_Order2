@@ -4,7 +4,7 @@ PetscPath=${PETSC}include
 PetscBuildPath=${PETSC}arch_WSL_Build_A/include
 Include=-I"${PetscPath}" -I"${PetscBuildPath}"
 Module=
-Libs=-lpetsc
+Libs=-lpetsc -llappack
 FC=mpif90
 
 Flags:=-cpp ${OptFlag} ${Include} ${Module}

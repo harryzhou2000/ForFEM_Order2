@@ -10,8 +10,14 @@ module fem_order2
 
     type(tMat) :: Aelas !stiffness for elasticity
     type(tVec) :: Pelas !load Vector for elasticity
+
+
     type(tMat) :: Ather !stiffness for thermal
     type(tVec) :: Pther !load Vector for thermal
+    
+    
+    integer, allocatable :: Ather_r_pos
+
 
     type fem_element
         integer(kind=4)           :: num_node ! M
@@ -369,10 +375,11 @@ contains
 
     end subroutine
 
+    ! A seq routine, only 1 process should go
     subroutine getVolumes()
         use globals
         integer i, ip, in, elem_id, num_intpoint, num_node
-        real(8) :: elem_coord(27,3) !max num node is 27 !warning
+        real(8) :: elem_coord(27,3) !max num node is 27 ! warning
         real(8) :: Jacobi(3,3)
         real(8) :: detJacobi
 
@@ -445,7 +452,8 @@ contains
 
     !!!!Tecplot output
 
-!https://tecplot.azureedge.net/products/360/current/360_data_format_guide.pdf
+    ! A seq routine, only 1 process should go
+    !https://tecplot.azureedge.net/products/360/current/360_data_format_guide.pdf
     subroutine output_plt_mesh(path, title)
         use globals
 
@@ -550,6 +558,7 @@ contains
         close(IOUT2)
     end subroutine
 
+    ! A seq routine, only 1 process should go
     subroutine output_plt_scalar(path, title, DATAin, DATAname)
         use globals
         implicit none
