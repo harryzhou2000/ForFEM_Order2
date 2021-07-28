@@ -7,13 +7,13 @@ module fem_order2
     use petscvec
     use petscmat
     !use mpi
-
+    implicit none
     type(tMat) :: Aelas !stiffness for elasticity
     type(tVec) :: Pelas !load Vector for elasticity
 
-
     type(tMat) :: Ather !stiffness for thermal
     type(tVec) :: Pther !load Vector for thermal
+    
     
     
     integer, allocatable :: Ather_r_pos
@@ -650,7 +650,12 @@ contains
 
     !after readgrid initializeLib
     subroutine SetUpThermal
+        PetscInt ierr
 
+
+        
+        call MatCreate(PETSC_COMM_WORLD, ATher ,ierr)
+        CHKERRA(ierr)
     end subroutine
 
     !after readgrid initializeLib
@@ -666,11 +671,11 @@ contains
 
     end subroutine
 
-    subroutine ConstructThermal
+    subroutine ConstructThermalSeq
 
     end subroutine
 
-    subroutine ConstructElasticity
+    subroutine ConstructElasticitySeq
 
     end subroutine
 
