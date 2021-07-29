@@ -11,10 +11,10 @@
 
  
 
-module para_csr
+module mat_csr
     implicit none
 
-    type tPara_Csr
+    type Csr
         integer nrow, nnz !number of local rows and non-zeros, set with subroutines
         integer globalRowStart !where row 0 maps to the global row
         integer, allocatable :: rowStart(:)  ! set with subroutines
@@ -26,44 +26,44 @@ module para_csr
 
 contains
     ! resets the matrix to nnrow rows
-    subroutine Para_Csr_SetNROW(A,nnrow)
-        type(tPara_Csr),intent(inout) :: A
+    subroutine Csr_SetNROW(A,nnrow)
+        type(Csr),intent(inout) :: A
         integer, intent(in) :: nnrow
         A%nrow = nnrow
     end subroutine
 
-    subroutine Para_Csr_SetNNZ(A,nnnz)
-        type(tPara_Csr),intent(inout) :: A
+    subroutine Csr_SetNNZ(A,nnnz)
+        type(Csr),intent(inout) :: A
         integer, intent(in) :: nnnz
         A%nnz = nnnz
     end subroutine
 
-    subroutine Para_Csr_AllocateRowStart(A)
-        type(tPara_Csr),intent(inout) :: A
+    subroutine Csr_AllocateRowStart(A)
+        type(Csr),intent(inout) :: A
         if (allocated(A%rowStart)) then
             deallocate(A%rowStart)
         endif
         allocate(A%rowStart(A%nrow+1))
     end subroutine
 
-    subroutine Para_Csr_AllocateColumn(A)
-        type(tPara_Csr),intent(inout) :: A
+    subroutine Csr_AllocateColumn(A)
+        type(Csr),intent(inout) :: A
         if (allocated(A%column)) then
             deallocate(A%column)
         endif
         allocate(A%column(A%nnz))
     end subroutine
 
-    subroutine Para_Csr_AllocateValue(A)
-        type(tPara_Csr),intent(inout) :: A
+    subroutine Csr_AllocateValue(A)
+        type(Csr),intent(inout) :: A
         if (allocated(A%value)) then
             deallocate(A%value)
         endif
         allocate(A%value(A%nnz))
     end subroutine
 
-    subroutine Para_Csr_DeleteMat(A)
-        type(tPara_Csr),intent(inout) :: A
+    subroutine Csr_DeleteMat(A)
+        type(Csr),intent(inout) :: A
         if (allocated(A%value)) then
             deallocate(A%value)
         endif
@@ -73,12 +73,7 @@ contains
         if (allocated(A%rowStart)) then
             deallocate(A%rowStart)
         endif
-        ! if (allocated(A%OrowStart)) then
-        !     deallocate(A%OrowStart)
-        ! endif
-        ! if (allocated(A%Ocolumn)) then
-        !     deallocate(A%Ocolumn)
-        ! endif
     end subroutine
 
 end module
+

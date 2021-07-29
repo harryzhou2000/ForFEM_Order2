@@ -44,22 +44,24 @@ contains
 
     end subroutine
 
+
+
     subroutine int_mergeSort(Seq,lo,hi)
-        integer,allocatable :: Seq(:)
+        integer,pointer :: Seq(:)
         integer lo, hi
-        integer,allocatable :: Useq(:)
+        integer,pointer :: Useq(:)
         if(.not. lo < hi) then
             return
         endif
-        allocate(Useq((lo + hi)/2-lo))
+        allocate(Useq((lo + hi)/2-lo+1))
         call int_mergeSort_Rec(Seq, lo, hi, Useq)
         deallocate(Useq)
     end subroutine
 
     recursive subroutine int_mergeSort_Rec(Seq, lo, hi, Useq) ![lo,hi)
-        integer,allocatable :: Seq(:)
+        integer,pointer :: Seq(:)
         integer lo, hi, mid
-        integer,allocatable :: Useq(:)
+        integer,pointer :: Useq(:)
 
         if(.not. lo < hi - 1) then
             return
@@ -71,26 +73,26 @@ contains
     end subroutine
 
     subroutine int_merge_inplace(Seq,lo,mid,hi,Useq)
-        integer,allocatable :: Seq(:)
-        integer,allocatable :: Useq(:)
+        integer,pointer :: Seq(:)
+        integer,pointer :: Useq(:)
         integer lo, mid, hi, lop, midp, newp
-        Useq(lo:mid-1) = Seq(lo:mid-1)
+        Useq(1:mid-lo) = Seq(lo:mid-1)
         lop = lo
         midp = mid
         newp = lo
         do while(lop < mid .and. midp < hi)
-            if(Seq(midp) < Useq(lop))then
+            if(Seq(midp) < Useq(lop-lo+1))then
                 Seq(newp) = Seq(midp)
                 newp = newp + 1
                 midp = midp + 1
             else
-                Seq(newp) = Useq(lop)
+                Seq(newp) = Useq(lop-lo+1)
                 newp = newp + 1
                 lop = lop + 1
             endif
         enddo
         do while(lop < mid)
-            Seq(newp) = Useq(lop)
+            Seq(newp) = Useq(lop-lo+1)
             newp = newp + 1
             lop = lop + 1
         enddo
@@ -100,5 +102,42 @@ contains
             midp = midp + 1
         enddo
     end subroutine
+
+    function int_checkSorted(Seq,lo,hi) result(res) ! true if sorted
+        integer,pointer :: Seq(:)
+        integer lo,hi,i
+        logical res
+        res = .true.
+        do i = lo+1,hi-2
+            if (Seq(lo) > Seq(lo + 1)) then
+                res = .false.
+            end if
+        end do
+    end function
+
+    subroutine int_reduceSorted(Seq,lo,hi,nhi)
+        integer,pointer :: Seq(:)
+        integer lo, hi
+        integer pwrite, psee
+        integer nhi
+        pwrite = lo + 1
+        psee = lo + 1
+
+        do while(psee < hi)
+            if(Seq(psee-1)==Seq(psee)) then
+                psee = psee + 1
+                cycle
+            else
+                Seq(pwrite)=Seq(psee)
+                psee = psee + 1
+                pwrite = pwrite + 1
+                cycle
+            endif
+        end do
+        nhi = pwrite
+    end subroutine
+
+
+    
 
 end module

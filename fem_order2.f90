@@ -6,6 +6,8 @@ module fem_order2
 #include <petsc/finclude/petscmat.h>
     use petscvec
     use petscmat
+
+    use mat_csr
     !use mpi
     implicit none
     type(tMat) :: Aelas !stiffness for elasticity
@@ -13,11 +15,20 @@ module fem_order2
 
     type(tMat) :: Ather !stiffness for thermal
     type(tVec) :: Pther !load Vector for thermal
-    
-    
-    
-    integer, allocatable :: Ather_r_pos
 
+    !topology of mesh nodes, should be parallized or upgraded to PETSC's dmplex
+    !serial for proc0
+    type(csr) :: AdjacencyCounter
+    !node->nodes counter uncompressed
+    !serial for proc0
+    integer, allocatable :: AdjacencyNum0(:)
+    
+    !using proc0, we assemble A and P
+
+    
+    
+
+    integer, allocatable :: Ather_r_pos
 
     type fem_element
         integer(kind=4)           :: num_node ! M
@@ -648,12 +659,12 @@ contains
 
 !!!!!!!!!!!!!!!!! subroutines invoking PETSC
 
+    subroutine
+
     !after readgrid initializeLib
     subroutine SetUpThermal
         PetscInt ierr
 
-
-        
         call MatCreate(PETSC_COMM_WORLD, ATher ,ierr)
         CHKERRA(ierr)
     end subroutine
