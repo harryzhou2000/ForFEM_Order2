@@ -133,8 +133,13 @@ contains
                 pwrite = pwrite + 1
                 cycle
             endif
-        end do
+        enddo
         nhi = pwrite
+        !fill null
+        do while(pwrite < hi)
+            Seq(pwrite) = huge(1_4)
+            pwrite = pwrite + 1
+        enddo
     end subroutine
 
 

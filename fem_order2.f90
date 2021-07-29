@@ -4,12 +4,22 @@
 module fem_order2
 #include <petsc/finclude/petscvec.h>
 #include <petsc/finclude/petscmat.h>
+#include "petsc/finclude/petscviewer.h"
+#include "petsc/finclude/petscsys.h"
+#include "petsc/finclude/petscis.h"
     use petscvec
     use petscmat
+    use petscsys
+    use petscis
+    use petscisdef
 
     use mat_csr
     !use mpi
     implicit none
+    MatPartitioning partition
+    Mat adjmat
+    type(tIS) partitionIndex, rowsTwoSidedIndex, partitionedNumberingIndex
+
     type(tMat) :: Aelas !stiffness for elasticity
     type(tVec) :: Pelas !load Vector for elasticity
 
@@ -18,15 +28,12 @@ module fem_order2
 
     !topology of mesh nodes, should be parallized or upgraded to PETSC's dmplex
     !serial for proc0
-    type(csr) :: AdjacencyCounter
+    type(csr), target :: AdjacencyCounter
     !node->nodes counter uncompressed
     !serial for proc0
     integer, allocatable :: AdjacencyNum0(:)
-    
-    !using proc0, we assemble A and P
 
-    
-    
+    !using proc0, we assemble A and P
 
     integer, allocatable :: Ather_r_pos
 
@@ -43,6 +50,7 @@ module fem_order2
     type(fem_element) elem_lib(nlib)
 
     real(8), allocatable :: cell_volumes(:)
+    real(8), allocatable :: point_partition(:)
 
 contains
     subroutine initializeLib
@@ -570,7 +578,7 @@ contains
     end subroutine
 
     ! A seq routine, only 1 process should go
-    subroutine output_plt_scalar(path, title, DATAin, DATAname)
+    subroutine output_plt_scalar(path, title, DATAin, DATAname, ifCell)
         use globals
         implicit none
         character(*), intent(in) :: path
@@ -583,11 +591,17 @@ contains
         real(kind = 8), intent(in) :: DATAin(:)
         character(*), intent(in) :: DATAname
         integer nmaxloc(1), nminloc(1)
+        logical ifCell
+        integer(4) CellInd
         ! integer rank, ierr
         ! call MPI_COMM_RANK(MPI_COMM_WORLD,rank, ierr)
         ! if (rank .ne. 0) then
         !     return
         ! end if
+        CellInd = 0_4
+        if(ifCell) then
+            CellInd = 1_4
+        endif
 
         if (.not. allocated(COORD)) then !using coord allocated to
             print *,"error::output_plt_mesh::coord data not allocated when calling output mesh"
@@ -608,7 +622,7 @@ contains
         headhead = "main_zone"
         call write_binary_plt_string(headhead, IOUT2)
         write(IOUT2) -1_4, -1_4, 0.0_8, -1_4, 5_4 !ParentZone, StrandID, SolutionTime, DZC, zoneType=FEBRICK
-        write(IOUT2) 1_4, 1_4 !specifyVarLocation
+        write(IOUT2) 1_4, CellInd !specifyVarLocation
         write(IOUT2) 0_4, 0_4
         buffer_INT32 = size(COORD,2)
         write(IOUT2) buffer_INT32 !numpoints
@@ -626,10 +640,17 @@ contains
         maxCoord = DATAin(nmaxloc(1))
         write(IOUT2) minCoord, maxCoord
         write(IOUT2) DATAin
-        if(size(DATAin) .ne. size(CELL)) then
-            print*,"Error::output_plt_scalar::DATA size ",size(DATAin)," not equal to ",size(CELL)
-            stop
-        end if
+        if(ifCell) then
+            if(size(DATAin) .ne. size(CELL)) then
+                print*,"Error::output_plt_scalar::DATA size ",size(DATAin)," not equal to CELL ",size(CELL)
+                stop
+            end if
+        else
+            if(size(DATAin) .ne. size(COORD,2)) then
+                print*,"Error::output_plt_scalar::DATA size ",size(DATAin)," not equal to VERT",size(COORD,2)
+                stop
+            end if
+        endif
 
         close(IOUT2)
     end subroutine
@@ -659,7 +680,144 @@ contains
 
 !!!!!!!!!!!!!!!!! subroutines invoking PETSC
 
-    subroutine
+    subroutine SetUpPartition
+        use globals
+        use linear_set
+
+        integer ncells, nverts,  elem_id, num_intpoint, num_node, current_row_start, current_ivert,&
+            next_row_start, new_row_end, current_row_start_old, next_row_start_old
+        integer rank, siz, ierr
+        integer i,j
+        integer fillBuffer(27)
+        integer, pointer:: tobesorted(:)
+        integer, allocatable:: oldCols(:), oldRows(:)
+        PetscInt, pointer :: parray(:)
+        Mat m2
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!
+        call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
+        call MPI_COMM_SIZE(MPI_COMM_WORLD,siz,ierr)
+
+        ncells = size(CELL)
+        nverts = size(COORD,dim=2)
+        print*,nverts
+
+        !!! Start Deriving AdjacencyCounter
+        if(rank == 0)then
+            if(allocated(AdjacencyNum0)) then
+                deallocate(AdjacencyNum0)
+            endif
+            allocate(AdjacencyNum0(nverts),source = 0)
+            do i = 1,ncells
+                elem_id = getElemID(CELL(i)%N)
+                !num_intpoint = elem_lib(elem_id)%num_intpoint
+                num_node = elem_lib(elem_id)%num_node
+                do j = 1,num_node
+                    AdjacencyNum0(CELL(i)%N(j)) = AdjacencyNum0(CELL(i)%N(j)) + num_node-1
+                enddo
+            enddo
+            call Csr_SetNROW(AdjacencyCounter, nverts)
+            call Csr_AllocateRowStart(AdjacencyCounter)
+            AdjacencyCounter%rowStart(0+1) = 0
+            do i = 1,nverts
+                AdjacencyCounter%rowStart(i+1) = AdjacencyCounter%rowStart(i) + AdjacencyNum0(i)
+            enddo
+            call Csr_SetNNZ(AdjacencyCounter, AdjacencyCounter%rowStart(nverts+1))
+            call Csr_AllocateColumn(AdjacencyCounter)
+
+            AdjacencyNum0 = 0
+            do i = 1,ncells
+                elem_id = getElemID(CELL(i)%N)
+                !num_intpoint = elem_lib(elem_id)%num_intpoint
+                num_node = elem_lib(elem_id)%num_node
+                do j = 1,num_node
+                    fillBuffer(1:j-1) = CELL(i)%N(1:j-1)
+                    fillBuffer(j:num_node-1) = CELL(i)%N(j+1:num_node)
+                    current_ivert = CELL(i)%N(j)
+                    current_row_start = AdjacencyCounter%rowStart(current_ivert) + AdjacencyNum0(current_ivert)
+                    AdjacencyNum0(current_ivert) = AdjacencyNum0(current_ivert) + num_node - 1
+                    AdjacencyCounter%column(current_row_start+1:current_row_start+num_node-1) &
+                        = fillBuffer(1:num_node-1) - 1
+                enddo
+            enddo
+            ! print*,'prev\',AdjacencyNum0
+            tobesorted => AdjacencyCounter%column
+            do i = 1,nverts
+                current_row_start = AdjacencyCounter%rowStart(i)
+                next_row_start = AdjacencyCounter%rowStart(i+1)
+                call int_mergeSort(tobesorted, current_row_start+1, next_row_start+1)
+                call int_reduceSorted(tobesorted,current_row_start+1,  next_row_start+1, new_row_end)
+                AdjacencyNum0(i) = new_row_end - current_row_start - 1
+            enddo
+            ! print*,'after\',AdjacencyNum0
+            ! print*,'rstart\', AdjacencyCounter%rowstart
+            ! print*,'data\' ,AdjacencyCounter%column
+            allocate(oldCols(size(AdjacencyCounter%column)))
+            oldCols = AdjacencyCounter%column
+            allocate(oldRows(size(AdjacencyCounter%rowStart)))
+            oldRows = AdjacencyCounter%rowStart
+
+            do i = 1,nverts
+                AdjacencyCounter%rowStart(i+1) = AdjacencyCounter%rowStart(i) + AdjacencyNum0(i)
+            enddo
+            call Csr_SetNNZ(AdjacencyCounter, AdjacencyCounter%rowStart(nverts+1))
+            call Csr_AllocateColumn(AdjacencyCounter)
+            do i = 1,nverts
+                current_row_start = AdjacencyCounter%rowStart(i)
+                next_row_start    = AdjacencyCounter%rowStart(i+1)
+                current_row_start_old = oldRows(i)
+                AdjacencyCounter%column(current_row_start+1: next_row_start+1) = &
+                    oldCols(current_row_start_old+1: AdjacencyNum0(i) + current_row_start_old)
+            enddo
+            ! print*,'rstart\', AdjacencyCounter%rowstart
+            ! print*,'data\' ,AdjacencyCounter%column
+
+            deallocate(oldCols)
+            deallocate(oldRows)
+        else
+            call Csr_SetNROW(AdjacencyCounter,0)
+            call Csr_AllocateRowStart(AdjacencyCounter)
+            AdjacencyCounter%RowStart(1) = 0
+            call Csr_SetNNZ(AdjacencyCounter,0)
+            call Csr_AllocateColumn(AdjacencyCounter)
+        endif
+
+        call PetscViewerPushFormat(PETSC_VIEWER_STDOUT_WORLD,PETSC_VIEWER_ASCII_INFO_DETAIL, ierr)
+
+        !!! Set MatAdj
+        if(rank==0) then
+            call MatCreateMPIAdj(MPI_COMM_WORLD,nverts,nverts,AdjacencyCounter%rowstart,AdjacencyCounter%column,&
+                                 PETSC_NULL_INTEGER,adjMat, ierr)
+        else
+            call MatCreateMPIAdj(MPI_COMM_WORLD,0,     nverts,AdjacencyCounter%rowstart,AdjacencyCounter%column,&
+                                 PETSC_NULL_INTEGER,adjMat, ierr)
+        endif
+        !call MatView(adjMat,PETSC_VIEWER_STDOUT_WORLD,ierr)
+
+        !!! Do Partition
+        call MatPartitioningCreate(MPI_COMM_WORLD, partition, ierr)
+        call MatPartitioningSetAdjacency(partition , adjmat, ierr)
+        call MatPartitioningSetFromOptions(partition, ierr)
+        call ISCreate(MPI_COMM_WORLD,partitionIndex,ierr)
+        call MatPartitioningApply(partition,partitionIndex, ierr)
+        call MatPartitioningDestroy(partition, ierr) !!!
+
+        !!! get Two Sided
+        call ISCreate(MPI_COMM_WORLD,rowsTwoSidedIndex,ierr)
+        call ISBuildTwoSided(partitionIndex, PETSC_NULL_IS, rowsTwoSidedIndex, ierr)
+
+        !!!!CHECK
+        !call IsView(partitionIndex, PETSC_VIEWER_STDOUT_WORLD, ierr)
+        !call MatCreateSubMatrix(adjMat,rowsTwoSidedIndex,rowsTwoSidedIndex,MAT_INITIAL_MATRIX,m2,ierr)
+        !call MatView(m2, PETSC_VIEWER_STDOUT_WORLD, ierr)
+        call IsGetIndicesF90(partitionIndex, parray, ierr) ! Fortran90 call does not need restoring
+        point_partition = parray
+        if(rank ==0 ) then
+            call output_plt_scalar('./out2_data1_part.plt', 'goodstart', point_partition, 'partition', .false.)
+        endif
+        !!!!CHECK
+
+    end subroutine
 
     !after readgrid initializeLib
     subroutine SetUpThermal

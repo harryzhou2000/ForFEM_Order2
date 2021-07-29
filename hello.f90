@@ -27,12 +27,13 @@ program addNumbers
     FILEINP = "./mark2_external.neu"
     outfile = "./out2.plt"
     call readgfile
+    print*,"NCELL ",ncell
     call initializeLib
     call getVolumes
     !serial part
     if(rank == 0 )then
         call output_plt_mesh(outfile, outtitle)
-        call output_plt_scalar("./out2_data1.plt", "goodstart",cell_volumes,"cell_volume")
+        call output_plt_scalar("./out2_data1.plt", "goodstart",cell_volumes,"cell_volume", .true.)
 
         a = -12.5
         b = 15.0
@@ -44,6 +45,8 @@ program addNumbers
         ! print*,D
         ! print*, matmul(directInverse3x3(D),D)
     endif
+    call SetUpPartition
+
 
     if(rank == 0) then
         print *, 'The total is ', result , ' cis ', c

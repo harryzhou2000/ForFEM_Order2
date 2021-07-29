@@ -44,6 +44,7 @@ contains
             deallocate(A%rowStart)
         endif
         allocate(A%rowStart(A%nrow+1))
+        A%rowStart(1) = 0
     end subroutine
 
     subroutine Csr_AllocateColumn(A)
