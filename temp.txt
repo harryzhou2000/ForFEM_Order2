@@ -1,0 +1,59 @@
+ 
+ 
+   subroutine ReducePoints
+        use globals
+        integer, allocatable :: newPointInd(:)
+        logical, allocatable :: hasRefrence(:)
+        real(8), allocatable :: newCoords(:,:)
+        integer :: ncells, nverts, elem_id, num_node, i, j, newInd
+        integer rank, siz, ierr
+
+        !!!
+
+        call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
+        call MPI_COMM_SIZE(MPI_COMM_WORLD,siz,ierr)
+        ncells = size(CELL)
+        nverts = size(COORD,dim=2)
+        if(rank == 0)then
+            allocate(hasRefrence(nverts),source=.false.)
+            allocate(newPointInd(nverts),source=-1)
+            do i = 1,ncells
+                elem_id = getElemID(CELL(i)%N)
+                !num_intpoint = elem_lib(elem_id)%num_intpoint
+                num_node = elem_lib(elem_id)%num_node
+                do j = 1,num_node
+                    hasRefrence(CELL(i)%N(j)) = .true.
+                enddo
+            enddo
+            ! print*,hasRefrence
+            newInd = 0
+            do i = 1, nverts
+                if(hasRefrence(i)) then
+                    newInd = newInd + 1
+                    newPointInd(i) = newInd
+                endif
+            enddo
+            allocate(newCoords(3,newInd))
+            do i = 1, ncells
+                elem_id = getElemID(CELL(i)%N)
+                !num_intpoint = elem_lib(elem_id)%num_intpoint
+                num_node = elem_lib(elem_id)%num_node
+                do j = 1,num_node
+                    CELL(i)%N(j) = newPointInd(CELL(i)%N(j))
+                enddo
+            enddo
+            do i = 1, nverts
+                if(hasRefrence(i)) then
+                    newCoords(:,newPointInd(i)) = COORD(:,i)
+                endif
+            enddo
+            deallocate(COORD)
+            allocate(COORD(3,newInd))
+            COORD = newCoords
+
+            deallocate(newCoords)
+            deallocate(newPointInd)
+            deallocate(hasRefrence)
+        endif
+
+    end subroutine

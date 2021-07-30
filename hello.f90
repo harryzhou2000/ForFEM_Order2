@@ -27,8 +27,8 @@ program addNumbers
     FILEINP = "./mark2_external.neu"
     outfile = "./out2.plt"
     call readgfile
-    print*,"NCELL ",ncell
     call initializeLib
+    call ReducePoints
     call getVolumes
     !serial part
     if(rank == 0 )then
@@ -45,6 +45,7 @@ program addNumbers
         ! print*,D
         ! print*, matmul(directInverse3x3(D),D)
     endif
+    
     call SetUpPartition
 
 

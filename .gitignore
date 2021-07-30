@@ -2,6 +2,7 @@ untitled.lpk
 a.exe
 *.exe
 out.txt
+out*.txt
 *.o
 *.plt
 *.mod

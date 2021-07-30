@@ -2,23 +2,34 @@
 !2nd order classsic isoparametric FEM
 
 module fem_order2
+
 #include <petsc/finclude/petscvec.h>
 #include <petsc/finclude/petscmat.h>
 #include "petsc/finclude/petscviewer.h"
 #include "petsc/finclude/petscsys.h"
 #include "petsc/finclude/petscis.h"
+!#include "petsc/mpiuni/mpif.h"
+!#include "mpif.h"
     use petscvec
     use petscmat
     use petscsys
     use petscis
     use petscisdef
-
     use mat_csr
+
+    !use mpi
+
     !use mpi
     implicit none
     MatPartitioning partition
     Mat adjmat
-    type(tIS) partitionIndex, rowsTwoSidedIndex, partitionedNumberingIndex
+    type(tIS) partitionIndex, rowsTwoSidedIndex, &
+        partitionedNumberingIndex, partitionedNumberingIndexLoc
+
+    type(tIs) partitionedNumberingIndexInversed
+
+    PetscInt :: localDOFs ! corresponding to rowsTwoSidedIndex, one dim per point
+    PetscInt :: globalDOFs
 
     type(tMat) :: Aelas !stiffness for elasticity
     type(tVec) :: Pelas !load Vector for elasticity
@@ -394,6 +405,64 @@ contains
 
     end subroutine
 
+    subroutine ReducePoints
+        use globals
+        integer, allocatable :: newPointInd(:)
+        logical, allocatable :: hasRefrence(:)
+        real(8), allocatable :: newCoords(:,:)
+        integer :: ncells, nverts, elem_id, num_node, i, j, newInd
+        integer rank, siz, ierr
+
+        !!!
+
+        call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
+        call MPI_COMM_SIZE(MPI_COMM_WORLD,siz,ierr)
+        ncells = size(CELL)
+        nverts = size(COORD,dim=2)
+        if(rank == 0 .or. .true. )then
+            allocate(hasRefrence(nverts),source=.false.)
+            allocate(newPointInd(nverts),source=-1)
+            do i = 1,ncells
+                elem_id = getElemID(CELL(i)%N)
+                !num_intpoint = elem_lib(elem_id)%num_intpoint
+                num_node = elem_lib(elem_id)%num_node
+                do j = 1,num_node
+                    hasRefrence(CELL(i)%N(j)) = .true.
+                enddo
+            enddo
+            ! print*,hasRefrence
+            newInd = 0
+            do i = 1, nverts
+                if(hasRefrence(i)) then
+                    newInd = newInd + 1
+                    newPointInd(i) = newInd
+                endif
+            enddo
+            allocate(newCoords(3,newInd))
+            do i = 1, ncells
+                elem_id = getElemID(CELL(i)%N)
+                !num_intpoint = elem_lib(elem_id)%num_intpoint
+                num_node = elem_lib(elem_id)%num_node
+                do j = 1,num_node
+                    CELL(i)%N(j) = newPointInd(CELL(i)%N(j))
+                enddo
+            enddo
+            do i = 1, nverts
+                if(hasRefrence(i)) then
+                    newCoords(:,newPointInd(i)) = COORD(:,i)
+                endif
+            enddo
+            deallocate(COORD)
+            allocate(COORD(3,newInd))
+            COORD = newCoords
+
+            deallocate(newCoords)
+            deallocate(newPointInd)
+            deallocate(hasRefrence)
+        endif
+
+    end subroutine
+
     ! A seq routine, only 1 process should go
     subroutine getVolumes()
         use globals
@@ -692,7 +761,13 @@ contains
         integer, pointer:: tobesorted(:)
         integer, allocatable:: oldCols(:), oldRows(:)
         PetscInt, pointer :: parray(:)
-        Mat m2
+        Mat m2, m3
+        Vec v1,v2
+        PetscInt msizem, msizen
+        integer loc(1)
+        PetscInt maxWidth
+        PetscScalar, allocatable::cellMat(:,:)
+        PetscInt,allocatable:: cellDOFs(:)
 
         !!!!!!!!!!!!!!!!!!!!!!!!!
         call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
@@ -700,7 +775,10 @@ contains
 
         ncells = size(CELL)
         nverts = size(COORD,dim=2)
-        print*,nverts
+        if(rank==0) then
+            globalDOFs = nverts
+        endif
+        call MPI_Bcast(globalDOFs,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
 
         !!! Start Deriving AdjacencyCounter
         if(rank == 0)then
@@ -782,14 +860,14 @@ contains
             call Csr_AllocateColumn(AdjacencyCounter)
         endif
 
-        call PetscViewerPushFormat(PETSC_VIEWER_STDOUT_WORLD,PETSC_VIEWER_ASCII_INFO_DETAIL, ierr)
+        call PetscViewerPushFormat(PETSC_VIEWER_STDOUT_WORLD,PETSC_VIEWER_ASCII_INDEX, ierr)
 
         !!! Set MatAdj
         if(rank==0) then
-            call MatCreateMPIAdj(MPI_COMM_WORLD,nverts,nverts,AdjacencyCounter%rowstart,AdjacencyCounter%column,&
+            call MatCreateMPIAdj(MPI_COMM_WORLD,globalDOFs,globalDOFs,AdjacencyCounter%rowstart,AdjacencyCounter%column,&
                                  PETSC_NULL_INTEGER,adjMat, ierr)
         else
-            call MatCreateMPIAdj(MPI_COMM_WORLD,0,     nverts,AdjacencyCounter%rowstart,AdjacencyCounter%column,&
+            call MatCreateMPIAdj(MPI_COMM_WORLD,0,         globalDOFs,AdjacencyCounter%rowstart,AdjacencyCounter%column,&
                                  PETSC_NULL_INTEGER,adjMat, ierr)
         endif
         !call MatView(adjMat,PETSC_VIEWER_STDOUT_WORLD,ierr)
@@ -805,17 +883,77 @@ contains
         !!! get Two Sided
         call ISCreate(MPI_COMM_WORLD,rowsTwoSidedIndex,ierr)
         call ISBuildTwoSided(partitionIndex, PETSC_NULL_IS, rowsTwoSidedIndex, ierr)
+        call ISGetLocalSize(rowsTwoSidedIndex,localDOFs,ierr)
+        print*,rank,"LOCALDOFS",localDOFs
+
+        !!! get Numbering
+        call ISCreate(MPI_COMM_WORLD,partitionedNumberingIndex,ierr)
+        call ISPartitioningToNumbering(partitionIndex, partitionedNumberingIndex, ierr)
+
+        !!! get Inumbering
+        call ISCreate(MPI_COMM_WORLD,partitionedNumberingIndexInversed, ierr)
+        call ISInvertPermutation(partitionedNumberingIndex,PETSC_DECIDE, partitionedNumberingIndexInversed,ierr)
+
+        !!! call ISSetBlockSize(partitionedNumberingIndex,123, ierr)
 
         !!!!CHECK
-        !call IsView(partitionIndex, PETSC_VIEWER_STDOUT_WORLD, ierr)
-        !call MatCreateSubMatrix(adjMat,rowsTwoSidedIndex,rowsTwoSidedIndex,MAT_INITIAL_MATRIX,m2,ierr)
-        !call MatView(m2, PETSC_VIEWER_STDOUT_WORLD, ierr)
+        !call IsView(partitionedNumberingIndex, PETSC_VIEWER_STDOUT_WORLD, ierr)
+        ! call MatCreateSubMatrix(adjMat,rowsTwoSidedIndex,rowsTwoSidedIndex,MAT_INITIAL_MATRIX,m2,ierr)
+        ! !call MatPermute(adjMat,rowsTwoSidedIndex,rowsTwoSidedIndex,m3, ierr)
+        ! !call MatView(m2, PETSC_VIEWER_STDOUT_WORLD, ierr)
+        ! call MatGetLocalSize(m2, msizem, msizen, ierr)
+        ! print*, rank, "m=", msizem, "n=", msizen
         call IsGetIndicesF90(partitionIndex, parray, ierr) ! Fortran90 call does not need restoring
         point_partition = parray
         if(rank ==0 ) then
             call output_plt_scalar('./out2_data1_part.plt', 'goodstart', point_partition, 'partition', .false.)
         endif
         !!!!CHECK
+
+        !!! max Row Size
+        if (rank == 0) then
+            loc = maxloc(AdjacencyNum0)
+            print*,"Max", AdjacencyNum0(loc(1))
+            maxWidth = AdjacencyNum0(loc(1))
+            loc = minloc(AdjacencyNum0)
+            print*,"Min", AdjacencyNum0(loc(1)), size(AdjacencyNum0), loc
+        endif
+        call MPI_Bcast(maxWidth,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+        !print*,rank, "MW=",maxWidth
+
+        !!! create a mat for testeing
+        call MatCreate(MPI_COMM_WORLD, m3, ierr)
+        call MatSetType(m3,MATMPIAIJ,ierr)
+        call MatSetSizes(m3, localDOFs*3, localDOFs*3, globalDOFs*3, globalDOFs*3, ierr)
+        call MatMPIAIJSetPreallocation(m3,maxWidth*3,PETSC_NULL_INTEGER,maxWidth*3,PETSC_NULL_INTEGER, ierr)
+        call IsGetIndicesF90(partitionedNumberingIndex, parray, ierr) !parray is now partitionedNumberingIndex
+        if(rank == 0)then
+            do i = 1, ncells
+                elem_id = getElemID(CELL(i)%N)
+                !num_intpoint = elem_lib(elem_id)%num_intpoint
+                num_node = elem_lib(elem_id)%num_node
+                allocate(cellDOFs(num_node*3))
+                allocate(cellMat(num_node*3,num_node*3))
+                do j = 1, num_node
+                    cellDOFs(3*(j - 1) + 1) = parray(CELL(i)%N(j)-1) * 3 + 0
+                    cellDOFs(3*(j - 1) + 2) = parray(CELL(i)%N(j)-1) * 3 + 1
+                    cellDOFs(3*(j - 1) + 3) = parray(CELL(i)%N(j)-1) * 3 + 2
+                enddo
+                cellMat = 1
+                call MatSetValues(m3, num_node*3, cellDOFs, num_node*3, cellDOFs, cellMat, ADD_VALUES, ierr)
+                deallocate(cellDOFs)
+                deallocate(cellMat)
+            enddo
+        endif
+        call MatAssemblyBegin(m3, MAT_FINAL_ASSEMBLY, ierr)
+        call MatAssemblyEnd(m3, MAT_FINAL_ASSEMBLY, ierr)
+        !call MatView(m3, PETSC_VIEWER_STDOUT_WORLD, ierr)
+        call VecCreateMPI(MPI_COMM_WORLD, localDOFs*3, globalDOFs*3, v1, ierr)
+        call VecCreateMPI(MPI_COMM_WORLD, localDOFs*3, globalDOFs*3, v2, ierr)
+        call VecSet(v1,1.0_8,ierr)
+        call MatMult(m3, v1, v2, ierr)
+        call VecView(v2,PETSC_VIEWER_STDOUT_WORLD, ierr)
+        !!!
 
     end subroutine
 
