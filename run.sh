@@ -12,4 +12,4 @@ then
 fi
 #echo npis${numProc}
 #echo optis$@
-mpirun -np ${numProc} --oversubscribe ./hello.exe $@
+mpirun -np ${numProc} --oversubscribe ./main.exe $@

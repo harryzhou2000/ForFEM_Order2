@@ -28,6 +28,8 @@ module fem_order2
 
     type(tIs) partitionedNumberingIndexInversed
 
+    PetscInt :: adjMaxWidth
+
     PetscInt :: localDOFs ! corresponding to rowsTwoSidedIndex, one dim per point
     PetscInt :: globalDOFs
 
@@ -47,6 +49,9 @@ module fem_order2
     !using proc0, we assemble A and P
 
     integer, allocatable :: Ather_r_pos
+
+    !!! constitutional:
+    real(8) k_ther(3,3)
 
     type fem_element
         integer(kind=4)           :: num_node ! M
@@ -402,6 +407,15 @@ contains
             elem_lib(i)%dNIdLimr(3,9,j)=4.0*x
             elem_lib(i)%dNIdLimr(3,10,j)=0.0
         end do
+
+    end subroutine
+
+    subroutine InitializeConstitution
+
+        k_ther = 0.0_8
+        k_ther(1,1) = 1.0_8
+        k_ther(2,2) = 1.0_8
+        k_ther(3,3) = 1.0_8
 
     end subroutine
 
@@ -914,54 +928,131 @@ contains
         if (rank == 0) then
             loc = maxloc(AdjacencyNum0)
             print*,"Max", AdjacencyNum0(loc(1))
-            maxWidth = AdjacencyNum0(loc(1))
+            maxWidth = AdjacencyNum0(loc(1)) + 1
             loc = minloc(AdjacencyNum0)
             print*,"Min", AdjacencyNum0(loc(1)), size(AdjacencyNum0), loc
         endif
         call MPI_Bcast(maxWidth,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+        adjMaxWidth = maxWidth !!!!!!!!
         !print*,rank, "MW=",maxWidth
 
-        !!! create a mat for testeing
-        call MatCreate(MPI_COMM_WORLD, m3, ierr)
-        call MatSetType(m3,MATMPIAIJ,ierr)
-        call MatSetSizes(m3, localDOFs*3, localDOFs*3, globalDOFs*3, globalDOFs*3, ierr)
-        call MatMPIAIJSetPreallocation(m3,maxWidth*3,PETSC_NULL_INTEGER,maxWidth*3,PETSC_NULL_INTEGER, ierr)
-        call IsGetIndicesF90(partitionedNumberingIndex, parray, ierr) !parray is now partitionedNumberingIndex
-        if(rank == 0)then
-            do i = 1, ncells
-                elem_id = getElemID(CELL(i)%N)
-                !num_intpoint = elem_lib(elem_id)%num_intpoint
-                num_node = elem_lib(elem_id)%num_node
-                allocate(cellDOFs(num_node*3))
-                allocate(cellMat(num_node*3,num_node*3))
-                do j = 1, num_node
-                    cellDOFs(3*(j - 1) + 1) = parray(CELL(i)%N(j)-1) * 3 + 0
-                    cellDOFs(3*(j - 1) + 2) = parray(CELL(i)%N(j)-1) * 3 + 1
-                    cellDOFs(3*(j - 1) + 3) = parray(CELL(i)%N(j)-1) * 3 + 2
-                enddo
-                cellMat = 1
-                call MatSetValues(m3, num_node*3, cellDOFs, num_node*3, cellDOFs, cellMat, ADD_VALUES, ierr)
-                deallocate(cellDOFs)
-                deallocate(cellMat)
-            enddo
-        endif
-        call MatAssemblyBegin(m3, MAT_FINAL_ASSEMBLY, ierr)
-        call MatAssemblyEnd(m3, MAT_FINAL_ASSEMBLY, ierr)
-        !call MatView(m3, PETSC_VIEWER_STDOUT_WORLD, ierr)
-        call VecCreateMPI(MPI_COMM_WORLD, localDOFs*3, globalDOFs*3, v1, ierr)
-        call VecCreateMPI(MPI_COMM_WORLD, localDOFs*3, globalDOFs*3, v2, ierr)
-        call VecSet(v1,1.0_8,ierr)
-        call MatMult(m3, v1, v2, ierr)
-        call VecView(v2,PETSC_VIEWER_STDOUT_WORLD, ierr)
+        ! !!! create a mat for testing
+        ! call MatCreate(MPI_COMM_WORLD, m3, ierr)
+        ! call MatSetType(m3,MATMPIAIJ,ierr)
+        ! call MatSetSizes(m3, localDOFs*3, localDOFs*3, globalDOFs*3, globalDOFs*3, ierr)
+        ! call MatMPIAIJSetPreallocation(m3,maxWidth*3,PETSC_NULL_INTEGER,maxWidth*3,PETSC_NULL_INTEGER, ierr)
+        ! call IsGetIndicesF90(partitionedNumberingIndex, parray, ierr) !parray is now partitionedNumberingIndex
+        ! if(rank == 0)then
+        !     do i = 1, ncells
+        !         elem_id = getElemID(CELL(i)%N)
+        !         !num_intpoint = elem_lib(elem_id)%num_intpoint
+        !         num_node = elem_lib(elem_id)%num_node
+        !         allocate(cellDOFs(num_node*3))
+        !         allocate(cellMat(num_node*3,num_node*3))
+        !         do j = 1, num_node
+        !             cellDOFs(3*(j - 1) + 1) = parray(CELL(i)%N(j)-1) * 3 + 0
+        !             cellDOFs(3*(j - 1) + 2) = parray(CELL(i)%N(j)-1) * 3 + 1
+        !             cellDOFs(3*(j - 1) + 3) = parray(CELL(i)%N(j)-1) * 3 + 2
+        !         enddo
+        !         cellMat = 1
+        !         call MatSetValues(m3, num_node*3, cellDOFs, num_node*3, cellDOFs, cellMat, ADD_VALUES, ierr)
+        !         deallocate(cellDOFs)
+        !         deallocate(cellMat)
+        !     enddo
+        ! endif
+        ! call MatAssemblyBegin(m3, MAT_FINAL_ASSEMBLY, ierr)
+        ! call MatAssemblyEnd(m3, MAT_FINAL_ASSEMBLY, ierr)
+        ! !call MatView(m3, PETSC_VIEWER_STDOUT_WORLD, ierr)
+        ! call VecCreateMPI(MPI_COMM_WORLD, localDOFs*3, globalDOFs*3, v1, ierr)
+        ! call VecCreateMPI(MPI_COMM_WORLD, localDOFs*3, globalDOFs*3, v2, ierr)
+        ! call VecSet(v1,1.0_8,ierr)
+        ! call MatMult(m3, v1, v2, ierr)
+        ! call VecView(v2,PETSC_VIEWER_STDOUT_WORLD, ierr)
         !!!
 
     end subroutine
 
     !after readgrid initializeLib
     subroutine SetUpThermal
+        use globals
         PetscInt ierr
+        PetscInt maxWidth
+        PetscInt, pointer :: parray(:)
+        integer :: rank, siz
+        PetscInt i, j, ncells, nverts, elem_id, num_node, num_intpoint, ip, in, ibc
+        PetscInt, allocatable::cellDOFs(:)
+        PetscScalar, allocatable::cellMat(:,:)
+        real(8) :: elem_coord(27,3), Jacobi(3,3), invJacobi(3,3)  !max num node is 27 ! warning
+        real(8) :: dNjdxi_ij(3,27), k__mul__dNjdxi_ij(3,27)
 
-        call MatCreate(PETSC_COMM_WORLD, ATher ,ierr)
+        !!!
+        maxWidth = adjMaxWidth
+        call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
+        call MPI_COMM_SIZE(MPI_COMM_WORLD,siz,ierr)
+        ncells = size(CELL)
+        nverts = size(COORD,dim=2)
+
+        !!! create a mat for testing
+        call MatCreate(MPI_COMM_WORLD, Ather, ierr)
+        call MatSetType(Ather,MATMPIAIJ,ierr)
+        call MatSetSizes(Ather, localDOFs, localDOFs, globalDOFs, globalDOFs, ierr)
+        call MatMPIAIJSetPreallocation(Ather,maxWidth*1,PETSC_NULL_INTEGER,maxWidth*1,PETSC_NULL_INTEGER, ierr)
+        call MatSetOption(Ather,MAT_ROW_ORIENTED,PETSC_FALSE,ierr) !!! Fortran is column major
+        call IsGetIndicesF90(partitionedNumberingIndex, parray, ierr) !parray is now partitionedNumberingIndex
+        if(rank == 0)then
+            do i = 1, ncells
+                elem_id = getElemID(CELL(i)%N)
+                num_intpoint = elem_lib(elem_id)%num_intpoint
+                num_node = elem_lib(elem_id)%num_node
+                allocate(cellDOFs(num_node*1))
+                allocate(cellMat(num_node*1,num_node*1))
+                do j = 1, num_node
+                    cellDOFs(1*(j - 1) + 1) = parray(CELL(i)%N(j)-1) * 1 + 0
+                enddo
+                !!! Integrate the cellMat
+                ! get the coords
+                do in = 1, num_node
+                    elem_coord(in,:) = COORD(:,CELL(I)%N(in))
+                end do
+                cellMat = 0.0_8
+                do ip = 1, num_intpoint
+                    Jacobi = matmul(elem_lib(elem_id)%dNIdLimr(:,:,ip),elem_coord(1:num_node,:)) !
+                    invJacobi = directInverse3x3(Jacobi)
+                    dNjdxi_ij(:,1:num_node) = matmul(invJacobi,elem_lib(elem_id)%dNIdLimr(:,:,ip))
+                    k__mul__dNjdxi_ij(:,1:num_node) = matmul(k_ther, dNjdxi_ij)
+                    cellMat = cellMat + matmul(transpose(dNjdxi_ij(:,1:num_node)), k__mul__dNjdxi_ij(:,1:num_node))
+                end do
+
+                !!!
+                call MatSetValues(Ather, num_node*1, cellDOFs, num_node*1, cellDOFs, cellMat, ADD_VALUES, ierr)
+                !print*,i
+                !print*,cellMat
+                deallocate(cellDOFs)
+                deallocate(cellMat)
+            enddo
+        endif
+        call MatAssemblyBegin(Ather, MAT_FINAL_ASSEMBLY, ierr)
+        call MatAssemblyEnd(Ather, MAT_FINAL_ASSEMBLY, ierr)
+        !call MatView(Ather, PETSC_VIEWER_STDOUT_WORLD, ierr)
+        call VecCreateMPI(MPI_COMM_WORLD, localDOFs*1, globalDOFs*1, Pther, ierr)
+        call VecSet(Pther,0.0_8,ierr)
+
+        !!!
+        if(rank == 0)then
+            do ibc = 1, NBSETS
+                do i = 1, size(bcread(ibc)%ELEM_ID)
+                    !print*,ibc,bcread(ibc)%ELEM_ID(i),&
+                    !    bcread(ibc)%ELEM_FACE(i)
+                    if (ibc <= 3)then
+
+                    else
+
+                    endif
+
+                enddo
+            enddo
+        endif
+
         CHKERRA(ierr)
     end subroutine
 

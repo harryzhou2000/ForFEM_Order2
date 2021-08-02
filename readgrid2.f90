@@ -39,6 +39,9 @@ subroutine readgfile
         allocate(ZONE(I)%N(GRPIT(I)%N(2)))
         read(IIN,'(10I8)') (ZONE(I)%N(J),J = 1,GRPIT(I)%N(2))
     enddo
+
+
+    
     !read bsets
     ALLOCATE(ITYPE(NBSETS))
     ALLOCATE(NENTRY(NBSETS))
