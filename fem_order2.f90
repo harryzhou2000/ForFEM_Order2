@@ -17,9 +17,10 @@ module fem_order2
     use petscisdef
     use mat_csr
 
-    !use mpi
+    use common_utils
 
     !use mpi
+
     implicit none
     MatPartitioning partition
     Mat adjmat
@@ -35,9 +36,15 @@ module fem_order2
 
     type(tMat) :: Aelas !stiffness for elasticity
     type(tVec) :: Pelas !load Vector for elasticity
+    real(8), allocatable :: dofFixElas(:)
+    real(8), allocatable :: bcValueElas(:)
+    integer(4), allocatable :: bcTypeElas(:)
 
     type(tMat) :: Ather !stiffness for thermal
     type(tVec) :: Pther !load Vector for thermal
+    real(8), allocatable :: dofFixTher(:)
+    real(8), allocatable :: bcValueTher(:)
+    integer(4), allocatable :: bcTypeTher(:)
 
     !topology of mesh nodes, should be parallized or upgraded to PETSC's dmplex
     !serial for proc0
@@ -60,10 +67,15 @@ module fem_order2
         real(kind=8), allocatable :: coord_intweight(:)  !weights of integration point, R
         real(kind=8), allocatable :: NImr(:, :) !N at intpoints M*R
         real(kind=8), allocatable :: dNIdLimr(:, :, :) !dNdL at intpoints 3*M*R
+
+        integer(kind=4)              :: num_face ! F
+        integer(kind=4), allocatable :: face_size(:)! FS
+        integer(kind=4), allocatable :: face_node(:,:) ! F*max(FS)
     end type
 
-    integer, parameter:: nlib = 3
+    integer, parameter:: nlib = 3, nlib_face = 2
     type(fem_element) elem_lib(nlib)
+    type(fem_element) elem_lib_face(nlib_face)
 
     real(8), allocatable :: cell_volumes(:)
     real(8), allocatable :: point_partition(:)
@@ -116,7 +128,7 @@ contains
         tet_ws(1) = -4.0_8/ 5.0_8  /6.0_8
         tet_ws(2) =  9.0_8/20.0_8  /6.0_8
         tet_ws(3) =  9.0_8/20.0_8  /6.0_8
-        tet_ws(4) =  9.0_8/20.0_8  /6.0_4
+        tet_ws(4) =  9.0_8/20.0_8  /6.0_8
         tet_ws(5) =  9.0_8/20.0_8  /6.0_8
 
         !hammer tri5 points organization
@@ -134,12 +146,18 @@ contains
         !gauss points organization
         lin_as(1) = -lin_a1
         lin_as(2) = -lin_a2
-        lin_as(3) = lin_a2
-        lin_as(4) = lin_a1
-        lin_ws(1) = lin_w1
-        lin_ws(2) = lin_w2
-        lin_ws(3) = lin_w2
-        lin_ws(4) = lin_w1
+        lin_as(3) =  lin_a2
+        lin_as(4) =  lin_a1
+        lin_ws(1) =  lin_w1
+        lin_ws(2) =  lin_w2
+        lin_ws(3) =  lin_w2
+        lin_ws(4) =  lin_w1
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !                              !
+        !    3D Element Definition     !
+        !                              !
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         i = 1
@@ -231,6 +249,17 @@ contains
             elem_lib(i)%dNIdLimr(3,14,j)=-2.0*x*z
             elem_lib(i)%dNIdLimr(3,15,j)=-2.0*y*z
         end do
+
+        !! set faces
+        elem_lib(i)%num_face = 5
+        allocate (elem_lib(i)%face_size(elem_lib(i)%num_face))
+        elem_lib(i)%face_size = (/8,8,8,6,6/)
+        allocate (elem_lib(i)%face_node(elem_lib(i)%num_face, 8))
+        elem_lib(i)%face_node(1, 1:elem_lib(i)%face_size(1)) = (/1,7,2,14,5,10,4,13/)
+        elem_lib(i)%face_node(2, 1:elem_lib(i)%face_size(2)) = (/2,8,3,15,6,11,5,14/)
+        elem_lib(i)%face_node(3, 1:elem_lib(i)%face_size(3)) = (/3,9,1,13,4,12,6,15/)
+        elem_lib(i)%face_node(4, 1:elem_lib(i)%face_size(4)) = (/1,9,3,8,2,7/)
+        elem_lib(i)%face_node(5, 1:elem_lib(i)%face_size(5)) = (/4,10,5,11,6,12/)
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         i = 2
@@ -345,6 +374,18 @@ contains
             elem_lib(i)%dNIdLimr(3,20,j)=(z*(x - 1.0)*(y + 1.0))/2.0
         end do
 
+        !! set faces
+        elem_lib(i)%num_face = 6
+        allocate (elem_lib(i)%face_size(elem_lib(i)%num_face))
+        elem_lib(i)%face_size = (/8,8,8,8,8,8/)
+        allocate (elem_lib(i)%face_node(elem_lib(i)%num_face, 8))
+        elem_lib(i)%face_node(1, 1:elem_lib(i)%face_size(1)) = (/1,12,4,11,3,10,2,9/)
+        elem_lib(i)%face_node(2, 1:elem_lib(i)%face_size(2)) = (/4,20,8,15,7,19,3,11/)
+        elem_lib(i)%face_node(3, 1:elem_lib(i)%face_size(3)) = (/8,16,5,13,6,14,7,15/)
+        elem_lib(i)%face_node(4, 1:elem_lib(i)%face_size(4)) = (/5,17,1,9,2,18,6,13/)
+        elem_lib(i)%face_node(5, 1:elem_lib(i)%face_size(5)) = (/4,12,1,17,5,16,8,20/)
+        elem_lib(i)%face_node(6, 1:elem_lib(i)%face_size(6)) = (/2,10,3,19,7,14,6,18/)
+
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         i = 3
         ! 10 node tetra
@@ -406,6 +447,133 @@ contains
             elem_lib(i)%dNIdLimr(3,8,j)=-4.0*x
             elem_lib(i)%dNIdLimr(3,9,j)=4.0*x
             elem_lib(i)%dNIdLimr(3,10,j)=0.0
+        end do
+
+        !! set faces
+        elem_lib(i)%num_face = 4
+        allocate (elem_lib(i)%face_size(elem_lib(i)%num_face))
+        elem_lib(i)%face_size = (/6,6,6,6/)
+        allocate (elem_lib(i)%face_node(elem_lib(i)%num_face, 8))
+        elem_lib(i)%face_node(1, 1:elem_lib(i)%face_size(1)) = (/4,8,1,7,3,10/)
+        elem_lib(i)%face_node(2, 1:elem_lib(i)%face_size(2)) = (/1,8,4,9,2,5/)
+        elem_lib(i)%face_node(3, 1:elem_lib(i)%face_size(3)) = (/4,10,3,6,2,9/)
+        elem_lib(i)%face_node(4, 1:elem_lib(i)%face_size(4)) = (/3,7,1,5,2,6/)
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !                              !
+        !    2D Element Definition     !
+        !                              !
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        i = 1
+        ! 8 node rect
+        ! intpoints and wight
+        elem_lib_face(i)%num_node = 8
+        elem_lib_face(i)%num_intpoint = 4*4
+        allocate (elem_lib_face(i)%coord_intpoint(3, elem_lib_face(i)%num_intpoint))
+        allocate (elem_lib_face(i)%coord_intweight(elem_lib_face(i)%num_intpoint))
+        do j = 1,4
+            do k = 1,4
+                my_coord(1) = lin_as(j)
+                my_coord(2) = lin_as(k)
+                my_coord(3) = 0.0_8
+                intpoint_id = k + (j - 1)*4
+                elem_lib_face(i)%coord_intpoint(:, intpoint_id) = my_coord
+                elem_lib_face(i)%coord_intweight(intpoint_id) = lin_ws(j)*lin_ws(k)
+            enddo
+        enddo
+        ! shape functions
+        allocate (elem_lib_face(i)%NImr(elem_lib_face(i)%num_node, elem_lib_face(i)%num_intpoint))
+        allocate (elem_lib_face(i)%dNIdLimr(3, elem_lib_face(i)%num_node, elem_lib_face(i)%num_intpoint))
+        do j = 1, elem_lib_face(i)%num_intpoint
+            x = elem_lib_face(i)%coord_intpoint(1, j)
+            y = elem_lib_face(i)%coord_intpoint(2, j)
+            z = elem_lib_face(i)%coord_intpoint(3, j)
+
+            !Ns
+            elem_lib_face(i)%NImr(1,j)=-((x - 1.0)*(y - 1.0)*(x + y + 1.0))/4.0
+            elem_lib_face(i)%NImr(2,j)=((x**2.0 - 1.0)*(y - 1.0))/2.0
+            elem_lib_face(i)%NImr(3,j)=((x + 1.0)*(y - 1.0)*(y - x + 1.0))/4.0
+            elem_lib_face(i)%NImr(4,j)=-((y**2.0 - 1.0)*(x + 1.0))/2.0
+            elem_lib_face(i)%NImr(5,j)=((x + 1.0)*(y + 1.0)*(x + y - 1.0))/4.0
+            elem_lib_face(i)%NImr(6,j)=-((x**2.0 - 1.0)*(y + 1.0))/2.0
+            elem_lib_face(i)%NImr(7,j)=((x - 1.0)*(y + 1.0)*(x - y + 1.0))/4.0
+            elem_lib_face(i)%NImr(8,j)=((y**2.0 - 1.0)*(x - 1.0))/2.0
+
+            !dirvatives of Ns
+            elem_lib_face(i)%dNIdLimr(1,1,j)=-((2.0*x + y)*(y - 1.0))/4.0
+            elem_lib_face(i)%dNIdLimr(1,2,j)=x*(y - 1.0)
+            elem_lib_face(i)%dNIdLimr(1,3,j)=-((2.0*x - y)*(y - 1.0))/4.0
+            elem_lib_face(i)%dNIdLimr(1,4,j)=1.0/2.0 - y**2.0/2.0
+            elem_lib_face(i)%dNIdLimr(1,5,j)=((2.0*x + y)*(y + 1.0))/4.0
+            elem_lib_face(i)%dNIdLimr(1,6,j)=-x*(y + 1.0)
+            elem_lib_face(i)%dNIdLimr(1,7,j)=((2.0*x - y)*(y + 1.0))/4.0
+            elem_lib_face(i)%dNIdLimr(1,8,j)=y**2.0/2.0 - 1.0/2.0
+            elem_lib_face(i)%dNIdLimr(2,1,j)=-((x + 2.0*y)*(x - 1.0))/4.0
+            elem_lib_face(i)%dNIdLimr(2,2,j)=x**2.0/2.0 - 1.0/2.0
+            elem_lib_face(i)%dNIdLimr(2,3,j)=-((x - 2.0*y)*(x + 1.0))/4.0
+            elem_lib_face(i)%dNIdLimr(2,4,j)=-y*(x + 1.0)
+            elem_lib_face(i)%dNIdLimr(2,5,j)=((x + 2.0*y)*(x + 1.0))/4.0
+            elem_lib_face(i)%dNIdLimr(2,6,j)=1.0/2.0 - x**2.0/2.0
+            elem_lib_face(i)%dNIdLimr(2,7,j)=((x - 2.0*y)*(x - 1.0))/4.0
+            elem_lib_face(i)%dNIdLimr(2,8,j)=y*(x - 1.0)
+            elem_lib_face(i)%dNIdLimr(3,1,j)=0.0
+            elem_lib_face(i)%dNIdLimr(3,2,j)=0.0
+            elem_lib_face(i)%dNIdLimr(3,3,j)=0.0
+            elem_lib_face(i)%dNIdLimr(3,4,j)=0.0
+            elem_lib_face(i)%dNIdLimr(3,5,j)=0.0
+            elem_lib_face(i)%dNIdLimr(3,6,j)=0.0
+            elem_lib_face(i)%dNIdLimr(3,7,j)=0.0
+            elem_lib_face(i)%dNIdLimr(3,8,j)=0.0
+        end do
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        i = 2
+        ! 6 node rect
+        ! intpoints and wight
+        elem_lib_face(i)%num_node = 6
+        elem_lib_face(i)%num_intpoint = 7
+        allocate (elem_lib_face(i)%coord_intpoint(3, elem_lib_face(i)%num_intpoint))
+        allocate (elem_lib_face(i)%coord_intweight(elem_lib_face(i)%num_intpoint))
+        elem_lib_face(i)%coord_intpoint(1:2, :) = tri_as
+        elem_lib_face(i)%coord_intpoint(3,   :) = 0.0_8
+        elem_lib_face(i)%coord_intweight = tri_ws
+        ! shape functions
+        allocate (elem_lib_face(i)%NImr(elem_lib_face(i)%num_node, elem_lib_face(i)%num_intpoint))
+        allocate (elem_lib_face(i)%dNIdLimr(3, elem_lib_face(i)%num_node, elem_lib_face(i)%num_intpoint))
+        do j = 1, elem_lib_face(i)%num_intpoint
+            x = elem_lib_face(i)%coord_intpoint(1, j)
+            y = elem_lib_face(i)%coord_intpoint(2, j)
+            z = elem_lib_face(i)%coord_intpoint(3, j)
+
+            !Ns
+            elem_lib_face(i)%NImr(1,j)=(2.0*x + 2.0*y - 1.0)*(x + y - 1.0)
+            elem_lib_face(i)%NImr(2,j)=-4.0*x*(x + y - 1.0)
+            elem_lib_face(i)%NImr(3,j)=x*(2.0*x - 1.0)
+            elem_lib_face(i)%NImr(4,j)=4.0*x*y
+            elem_lib_face(i)%NImr(5,j)=y*(2.0*y - 1.0)
+            elem_lib_face(i)%NImr(6,j)=-4.0*y*(x + y - 1.0)
+
+            !dirvatives of Ns
+            elem_lib_face(i)%dNIdLimr(1,1,j)=4.0*x + 4.0*y - 3.0
+            elem_lib_face(i)%dNIdLimr(1,2,j)=4.0 - 4.0*y - 8.0*x
+            elem_lib_face(i)%dNIdLimr(1,3,j)=4.0*x - 1.0
+            elem_lib_face(i)%dNIdLimr(1,4,j)=4.0*y
+            elem_lib_face(i)%dNIdLimr(1,5,j)=0.0
+            elem_lib_face(i)%dNIdLimr(1,6,j)=-4.0*y
+            elem_lib_face(i)%dNIdLimr(2,1,j)=4.0*x + 4.0*y - 3.0
+            elem_lib_face(i)%dNIdLimr(2,2,j)=-4.0*x
+            elem_lib_face(i)%dNIdLimr(2,3,j)=0.0
+            elem_lib_face(i)%dNIdLimr(2,4,j)=4.0*x
+            elem_lib_face(i)%dNIdLimr(2,5,j)=4.0*y - 1.0
+            elem_lib_face(i)%dNIdLimr(2,6,j)=4.0 - 8.0*y - 4.0*x
+            elem_lib_face(i)%dNIdLimr(3,1,j)=0.0
+            elem_lib_face(i)%dNIdLimr(3,2,j)=0.0
+            elem_lib_face(i)%dNIdLimr(3,3,j)=0.0
+            elem_lib_face(i)%dNIdLimr(3,4,j)=0.0
+            elem_lib_face(i)%dNIdLimr(3,5,j)=0.0
+            elem_lib_face(i)%dNIdLimr(3,6,j)=0.0
         end do
 
     end subroutine
@@ -506,33 +674,6 @@ contains
         end do
     end subroutine
 
-    function directInverse3x3(A) result(AI)
-        real(kind=8), intent(in)  :: A(3, 3)
-        real(kind=8) :: AI(3, 3)
-        real(kind=8) :: detA
-        detA = A(1, 1)*A(2, 2)*A(3, 3) - A(1, 1)*A(2, 3)*A(3, 2) - A(1, 2)*A(2, 1)*A(3, 3) &
-               + A(1, 2)*A(2, 3)*A(3, 1) + A(1, 3)*A(2, 1)*A(3, 2) - A(1, 3)*A(2, 2)*A(3, 1)
-        if (abs(detA) < tiny(detA)*16) then
-            print *, "Error===directInverse3x3===singular matrix, det = ", detA
-            stop
-        end if
-        AI(1, 1) = (A(2, 2)*A(3, 3) - A(2, 3)*A(3, 2))/detA
-        AI(1, 2) = -(A(1, 2)*A(3, 3) - A(1, 3)*A(3, 2))/detA
-        AI(1, 3) = (A(1, 2)*A(2, 3) - A(1, 3)*A(2, 2))/detA
-        AI(2, 1) = -(A(2, 1)*A(3, 3) - A(2, 3)*A(3, 1))/detA
-        AI(2, 2) = (A(1, 1)*A(3, 3) - A(1, 3)*A(3, 1))/detA
-        AI(2, 3) = -(A(1, 1)*A(2, 3) - A(1, 3)*A(2, 1))/detA
-        AI(3, 1) = (A(2, 1)*A(3, 2) - A(2, 2)*A(3, 1))/detA
-        AI(3, 2) = -(A(1, 1)*A(3, 2) - A(1, 2)*A(3, 1))/detA
-        AI(3, 3) = (A(1, 1)*A(2, 2) - A(1, 2)*A(2, 1))/detA
-    end function
-
-    function directDet3x3(A) result(detA)
-        real(kind=8), intent(in)  :: A(3, 3)
-        real(kind=8) :: detA
-        detA = A(1, 1)*A(2, 2)*A(3, 3) - A(1, 1)*A(2, 3)*A(3, 2) - A(1, 2)*A(2, 1)*A(3, 3) &
-               + A(1, 2)*A(2, 3)*A(3, 1) + A(1, 3)*A(2, 1)*A(3, 2) - A(1, 3)*A(2, 2)*A(3, 1)
-    end function
 
     function getElemID(CELLI) result(ID)
         integer, allocatable, intent(in) :: CELLI(:)
@@ -549,7 +690,21 @@ contains
             print *, "Not supported"
             stop
         end select
+    end function
 
+    function getElemIDFace(FACEI) result(ID)
+        integer, allocatable, intent(in) :: FACEI(:)
+        integer :: ID
+        select case(size(FACEI))
+        case(8)
+            ID = 1
+        case(6)
+            ID = 2
+        case default
+            print *, "Error::getFACEID::Current Num Node ",size(FACEI)
+            print *, "Not supported"
+            stop
+        end select
     end function
 
     !!!!Tecplot output
@@ -979,26 +1134,59 @@ contains
         PetscInt maxWidth
         PetscInt, pointer :: parray(:)
         integer :: rank, siz
-        PetscInt i, j, ncells, nverts, elem_id, num_node, num_intpoint, ip, in, ibc
+        PetscInt i, j, ncells, nverts, elem_id, num_node, num_intpoint, ip, in, in2, &
+            ie, ibc, ifc, facesize
+        PetscInt faceNodes(8)
         PetscInt, allocatable::cellDOFs(:)
-        PetscScalar, allocatable::cellMat(:,:)
+        PetscScalar, allocatable::cellMat(:,:), cellVec(:)
         real(8) :: elem_coord(27,3), Jacobi(3,3), invJacobi(3,3)  !max num node is 27 ! warning
         real(8) :: dNjdxi_ij(3,27), k__mul__dNjdxi_ij(3,27)
+        real(8) minus1, nodeFix, nodeDiag
 
-        !!!
+        !!! startup
         maxWidth = adjMaxWidth
         call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
         call MPI_COMM_SIZE(MPI_COMM_WORLD,siz,ierr)
         ncells = size(CELL)
         nverts = size(COORD,dim=2)
+        call IsGetIndicesF90(partitionedNumberingIndex, parray, ierr) !parray is now partitionedNumberingIndex
 
-        !!! create a mat for testing
+        !!! mark set dofs
+        if(allocated(dofFixTher)) then
+            deallocate(dofFixTher)
+        endif
+        allocate(dofFixTher(nverts))
+        minus1 = -1
+        dofFixTher = sqrt(minus1)
+        if(rank==0) then
+            do ibc = 1, NBSETS
+                if(bcTypeTher(ibc) == 0) then
+                    do i = 1, size(bcread(ibc)%ELEM_ID)
+                        !print*,ibc,bcread(ibc)%ELEM_ID(i),&
+                        !    bcread(ibc)%ELEM_FACE(i)
+                        ie = bcread(ibc)%ELEM_ID(i)
+                        ifc = bcread(ibc)%ELEM_FACE(i)
+                        elem_id = getElemID(CELL(ie)%N)
+                        facesize = elem_lib(elem_id)%face_size(ifc)
+                        faceNodes(1:facesize) = elem_lib(elem_id)%face_node(ifc, 1:facesize)
+                        do j = 1,facesize
+                            faceNodes(j) = CELL(ie)%N(faceNodes(j))
+                            dofFixTher(faceNodes(j)) = bcValueTher(j)
+                        enddo
+                    enddo
+                endif
+            enddo
+        endif
+
+        !!! create mat
         call MatCreate(MPI_COMM_WORLD, Ather, ierr)
         call MatSetType(Ather,MATMPIAIJ,ierr)
         call MatSetSizes(Ather, localDOFs, localDOFs, globalDOFs, globalDOFs, ierr)
         call MatMPIAIJSetPreallocation(Ather,maxWidth*1,PETSC_NULL_INTEGER,maxWidth*1,PETSC_NULL_INTEGER, ierr)
         call MatSetOption(Ather,MAT_ROW_ORIENTED,PETSC_FALSE,ierr) !!! Fortran is column major
-        call IsGetIndicesF90(partitionedNumberingIndex, parray, ierr) !parray is now partitionedNumberingIndex
+        call VecCreateMPI(MPI_COMM_WORLD, localDOFs*1, globalDOFs*1, Pther, ierr)
+        call VecSet(Pther,0.0_8,ierr)
+
         if(rank == 0)then
             do i = 1, ncells
                 elem_id = getElemID(CELL(i)%N)
@@ -1006,6 +1194,7 @@ contains
                 num_node = elem_lib(elem_id)%num_node
                 allocate(cellDOFs(num_node*1))
                 allocate(cellMat(num_node*1,num_node*1))
+                allocate(cellVec(num_node*1))
                 do j = 1, num_node
                     cellDOFs(1*(j - 1) + 1) = parray(CELL(i)%N(j)-1) * 1 + 0
                 enddo
@@ -1023,35 +1212,46 @@ contains
                     cellMat = cellMat + matmul(transpose(dNjdxi_ij(:,1:num_node)), k__mul__dNjdxi_ij(:,1:num_node))
                 end do
 
+                do in = 1, num_node
+                    if(.not. isnan(dofFixTher(CELL(I)%N(in)))) then
+                        nodeFix = dofFixTher(CELL(I)%N(in))
+                        nodeDiag = cellMat(in,in)
+                        cellVec = -cellMat(:,in)
+                        do in2 = 1, num_node
+                            if(.not. isnan(dofFixTher(CELL(I)%N(in2)))) then
+                                cellVec(in2) = 0.0_8 ! do not add rhs for other fixed dofs
+                            endif
+                        enddo
+                        cellVec(in) = nodeDiag
+                        cellVec = cellVec * nodeFix
+                        call VecSetValues(Pther,num_node,cellDOFs,cellVec,ADD_VALUES,ierr)
+                        cellMat(in,:) = 0.0_8
+                        cellMat(:,in) = 0.0_8
+                        cellMat(in,in) = nodeDiag
+                    endif
+                enddo
+
                 !!!
                 call MatSetValues(Ather, num_node*1, cellDOFs, num_node*1, cellDOFs, cellMat, ADD_VALUES, ierr)
                 !print*,i
                 !print*,cellMat
                 deallocate(cellDOFs)
                 deallocate(cellMat)
+                deallocate(cellVec)
             enddo
         endif
-        call MatAssemblyBegin(Ather, MAT_FINAL_ASSEMBLY, ierr)
-        call MatAssemblyEnd(Ather, MAT_FINAL_ASSEMBLY, ierr)
-        !call MatView(Ather, PETSC_VIEWER_STDOUT_WORLD, ierr)
-        call VecCreateMPI(MPI_COMM_WORLD, localDOFs*1, globalDOFs*1, Pther, ierr)
-        call VecSet(Pther,0.0_8,ierr)
-
-        !!!
+        !!!TODO: face integral for type 2 or 3 bc
         if(rank == 0)then
             do ibc = 1, NBSETS
                 do i = 1, size(bcread(ibc)%ELEM_ID)
-                    !print*,ibc,bcread(ibc)%ELEM_ID(i),&
-                    !    bcread(ibc)%ELEM_FACE(i)
-                    if (ibc <= 3)then
-
-                    else
-
-                    endif
 
                 enddo
             enddo
         endif
+
+        call MatAssemblyBegin(Ather, MAT_FINAL_ASSEMBLY, ierr)
+        call MatAssemblyEnd(Ather, MAT_FINAL_ASSEMBLY, ierr)
+        !call MatView(Ather, PETSC_VIEWER_STDOUT_WORLD, ierr)
 
         CHKERRA(ierr)
     end subroutine

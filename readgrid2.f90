@@ -40,8 +40,6 @@ subroutine readgfile
         read(IIN,'(10I8)') (ZONE(I)%N(J),J = 1,GRPIT(I)%N(2))
     enddo
 
-
-    
     !read bsets
     ALLOCATE(ITYPE(NBSETS))
     ALLOCATE(NENTRY(NBSETS))
@@ -107,18 +105,18 @@ subroutine noderead(cety,cenode,i)
             RTEM(8) = TEM( 8)
 
             !EDGE CENTER POINT
+            RTEM( 9) = TEM( 9)
             RTEM(10) = TEM(14)
+            RTEM(11) = TEM(10)
             RTEM(12) = TEM( 2)
-            RTEM(16) = TEM( 7)
+            RTEM(13) = TEM(11)
             RTEM(14) = TEM(19)
+            RTEM(15) = TEM(12)
+            RTEM(16) = TEM( 7)
+            RTEM(17) = TEM( 4)
             RTEM(18) = TEM(16)
             RTEM(19) = TEM(17)
             RTEM(20) = TEM( 5)
-            RTEM(17) = TEM( 4)
-            RTEM( 9) = TEM( 9)
-            RTEM(11) = TEM(10)
-            RTEM(15) = TEM(12)
-            RTEM(13) = TEM(11)
 
             SOLVER_NNODE = 20
 
@@ -170,17 +168,17 @@ subroutine noderead(cety,cenode,i)
             SOLVER_NNODE = 4
 
         ELSEIF(CNODES==10) THEN
-            RTEM(1) = TEM( 1)
-            RTEM(2) = TEM(10)
-            RTEM(3) = TEM( 6)
-            RTEM(4) = TEM( 3)
+            RTEM( 1) = TEM( 1)
+            RTEM( 2) = TEM(10)
+            RTEM( 3) = TEM( 6)
+            RTEM( 4) = TEM( 3)
 
-            RTEM(5) = TEM( 7)
-            RTEM(6) = TEM( 9)
-            RTEM(7) = TEM( 4)
-            RTEM(8) = TEM( 2)
-            RTEM(9) = TEM( 8)
-            RTEM(10) = TEM(5)
+            RTEM( 5) = TEM( 7)
+            RTEM( 6) = TEM( 9)
+            RTEM( 7) = TEM( 4)
+            RTEM( 8) = TEM( 2)
+            RTEM( 9) = TEM( 8)
+            RTEM(10) = TEM( 5)
             SOLVER_NNODE = 10
         ENDIF
 
@@ -485,5 +483,3 @@ subroutine initialize
     enddo
 
 end subroutine
-
-
