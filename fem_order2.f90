@@ -8,6 +8,7 @@ module fem_order2
 #include "petsc/finclude/petscviewer.h"
 #include "petsc/finclude/petscsys.h"
 #include "petsc/finclude/petscis.h"
+#include "petsc/finclude/petscksp.h"
 !#include "petsc/mpiuni/mpif.h"
 !#include "mpif.h"
     use petscvec
@@ -15,6 +16,7 @@ module fem_order2
     use petscsys
     use petscis
     use petscisdef
+    use petscksp
     use mat_csr
 
     use common_utils
@@ -27,21 +29,27 @@ module fem_order2
     type(tIS) partitionIndex, rowsTwoSidedIndex, &
         partitionedNumberingIndex, partitionedNumberingIndexLoc
 
-    type(tIs) partitionedNumberingIndexInversed
+    type(tIs) partitionedNumberingIndexInversed, partitionedNumberingIndex3x
 
     PetscInt :: adjMaxWidth
 
     PetscInt :: localDOFs ! corresponding to rowsTwoSidedIndex, one dim per point
     PetscInt :: globalDOFs
 
+    KSP  :: KSPelas
     type(tMat) :: Aelas !stiffness for elasticity
     type(tVec) :: Pelas !load Vector for elasticity
+    type(tVec) :: Uelas !solution Vector for elasticity
+    real(8), allocatable :: gatheredUelas(:)
     real(8), allocatable :: dofFixElas(:)
     real(8), allocatable :: bcValueElas(:)
     integer(4), allocatable :: bcTypeElas(:)
 
+    KSP  :: KSPther
     type(tMat) :: Ather !stiffness for thermal
     type(tVec) :: Pther !load Vector for thermal
+    type(tVec) :: Uther !solution Vector for elasticity
+    real(8), allocatable :: gatheredUther(:)
     real(8), allocatable :: dofFixTher(:)
     real(8), allocatable :: bcValueTher(:)
     integer(4), allocatable :: bcTypeTher(:)
@@ -621,6 +629,7 @@ contains
                 endif
             enddo
             allocate(newCoords(3,newInd))
+            !wash the node indices of cells
             do i = 1, ncells
                 elem_id = getElemID(CELL(i)%N)
                 !num_intpoint = elem_lib(elem_id)%num_intpoint
@@ -629,6 +638,7 @@ contains
                     CELL(i)%N(j) = newPointInd(CELL(i)%N(j))
                 enddo
             enddo
+
             do i = 1, nverts
                 if(hasRefrence(i)) then
                     newCoords(:,newPointInd(i)) = COORD(:,i)
@@ -673,7 +683,6 @@ contains
             end do
         end do
     end subroutine
-
 
     function getElemID(CELLI) result(ID)
         integer, allocatable, intent(in) :: CELLI(:)
@@ -938,6 +947,8 @@ contains
         PetscScalar, allocatable::cellMat(:,:)
         PetscInt,allocatable:: cellDOFs(:)
 
+        PetscInt,allocatable::numberingExtendedVal(:)
+
         !!!!!!!!!!!!!!!!!!!!!!!!!
         call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
         call MPI_COMM_SIZE(MPI_COMM_WORLD,siz,ierr)
@@ -1059,9 +1070,28 @@ contains
         call ISCreate(MPI_COMM_WORLD,partitionedNumberingIndex,ierr)
         call ISPartitioningToNumbering(partitionIndex, partitionedNumberingIndex, ierr)
 
+        !!! get Numbering Extended
+        call IsGetIndicesF90(partitionedNumberingIndex, parray, ierr)
+        if(rank == 0)then
+            allocate(numberingExtendedVal(globalDOFs * 3))
+            do i = 1, globalDOFs
+                numberingExtendedVal((i-1) * 3 + 1) = parray(i) * 3 + 0
+                numberingExtendedVal((i-1) * 3 + 2) = parray(i) * 3 + 1
+                numberingExtendedVal((i-1) * 3 + 3) = parray(i) * 3 + 2
+            enddo
+            call ISCreateGeneral(MPI_COMM_WORLD,globalDOFs*3,numberingExtendedVal,&
+                                 PETSC_COPY_VALUES,partitionedNumberingIndex3x, ierr)
+        else
+            allocate(numberingExtendedVal(0))
+            call ISCreateGeneral(MPI_COMM_WORLD,0,numberingExtendedVal,&
+                                 PETSC_COPY_VALUES,partitionedNumberingIndex3x, ierr)
+        endif
+        deallocate(numberingExtendedVal)
+
         !!! get Inumbering
         call ISCreate(MPI_COMM_WORLD,partitionedNumberingIndexInversed, ierr)
         call ISInvertPermutation(partitionedNumberingIndex,PETSC_DECIDE, partitionedNumberingIndexInversed,ierr)
+        !partitionedNumberingIndexInversed is dataly same as rowsTwoSidedIndex
 
         !!! call ISSetBlockSize(partitionedNumberingIndex,123, ierr)
 
@@ -1128,6 +1158,64 @@ contains
     end subroutine
 
     !after readgrid initializeLib
+    subroutine SetUpThermalBC_BLOCKED
+        use globals
+        integer :: rank, siz
+        real(8) minus1
+        PetscInt i, j, ncells, nverts, elem_id, num_node, num_intpoint, ip, in, in2, &
+            ie, ibc, ifc, facesize, ierr, maxWidth
+        PetscInt faceNodes(8)
+
+        !!! startup
+        maxWidth = adjMaxWidth
+        call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
+        call MPI_COMM_SIZE(MPI_COMM_WORLD,siz,ierr)
+        ncells = size(CELL)
+        nverts = size(COORD,dim=2)
+
+        !!! mark set dofs
+        if(allocated(dofFixTher)) then
+            deallocate(dofFixTher)
+        endif
+        allocate(dofFixTher(nverts))
+        minus1 = -1
+        dofFixTher = sqrt(minus1)
+        if(rank==0) then
+            do ibc = 1, NBSETS
+                if(bcTypeTher(ibc) == 0) then
+                    print*,'fixedbc', ibc, bname(ibc),bcValueTher(ibc)
+                    do i = 1, size(bcread(ibc)%ELEM_ID)
+                        !print*,ibc,bcread(ibc)%ELEM_ID(i),&
+                        !    bcread(ibc)%ELEM_FACE(i)
+                        ie = bcread(ibc)%ELEM_ID(i)
+                        ifc = bcread(ibc)%ELEM_FACE(i)
+                        elem_id = getElemID(CELL(ie)%N)
+                        facesize = elem_lib(elem_id)%face_size(ifc)
+                        faceNodes(1:facesize) = elem_lib(elem_id)%face_node(ifc, 1:facesize)
+                        do j = 1,facesize
+                            faceNodes(j) = CELL(ie)%N(faceNodes(j))
+                            dofFixTher(faceNodes(j)) = bcValueTher(ibc)
+                        enddo
+                    enddo
+                endif
+            enddo
+        endif
+    end subroutine
+
+    subroutine SetUpThermal_InitializeObjects ! To create mat and vecs
+        PetscInt ierr
+        PetscInt maxWidth
+        maxWidth = adjMaxWidth
+        call MatCreate(MPI_COMM_WORLD, Ather, ierr)
+        call MatSetType(Ather,MATMPIAIJ,ierr)
+        call MatSetSizes(Ather, localDOFs, localDOFs, globalDOFs, globalDOFs, ierr)
+        call MatMPIAIJSetPreallocation(Ather,maxWidth*1,PETSC_NULL_INTEGER,maxWidth*1,PETSC_NULL_INTEGER, ierr)
+        call MatSetOption(Ather,MAT_ROW_ORIENTED,PETSC_FALSE,ierr) !!! Fortran is column major
+        call VecCreateMPI(MPI_COMM_WORLD, localDOFs*1, globalDOFs*1, Pther, ierr)
+        call VecCreateMPI(MPI_COMM_WORLD, localDOFs*1, globalDOFs*1, Uther, ierr)
+        CHKERRA(ierr)
+    end subroutine
+
     subroutine SetUpThermal
         use globals
         PetscInt ierr
@@ -1142,6 +1230,13 @@ contains
         real(8) :: elem_coord(27,3), Jacobi(3,3), invJacobi(3,3)  !max num node is 27 ! warning
         real(8) :: dNjdxi_ij(3,27), k__mul__dNjdxi_ij(3,27)
         real(8) minus1, nodeFix, nodeDiag
+        logical touchedMat
+
+        !
+        ! Vec testvec, testvec2
+        ! VecScatter procToZeroScatter
+        ! PetscInt Gsize, csize
+        ! PetscScalar cval
 
         !!! startup
         maxWidth = adjMaxWidth
@@ -1151,40 +1246,6 @@ contains
         nverts = size(COORD,dim=2)
         call IsGetIndicesF90(partitionedNumberingIndex, parray, ierr) !parray is now partitionedNumberingIndex
 
-        !!! mark set dofs
-        if(allocated(dofFixTher)) then
-            deallocate(dofFixTher)
-        endif
-        allocate(dofFixTher(nverts))
-        minus1 = -1
-        dofFixTher = sqrt(minus1)
-        if(rank==0) then
-            do ibc = 1, NBSETS
-                if(bcTypeTher(ibc) == 0) then
-                    do i = 1, size(bcread(ibc)%ELEM_ID)
-                        !print*,ibc,bcread(ibc)%ELEM_ID(i),&
-                        !    bcread(ibc)%ELEM_FACE(i)
-                        ie = bcread(ibc)%ELEM_ID(i)
-                        ifc = bcread(ibc)%ELEM_FACE(i)
-                        elem_id = getElemID(CELL(ie)%N)
-                        facesize = elem_lib(elem_id)%face_size(ifc)
-                        faceNodes(1:facesize) = elem_lib(elem_id)%face_node(ifc, 1:facesize)
-                        do j = 1,facesize
-                            faceNodes(j) = CELL(ie)%N(faceNodes(j))
-                            dofFixTher(faceNodes(j)) = bcValueTher(j)
-                        enddo
-                    enddo
-                endif
-            enddo
-        endif
-
-        !!! create mat
-        call MatCreate(MPI_COMM_WORLD, Ather, ierr)
-        call MatSetType(Ather,MATMPIAIJ,ierr)
-        call MatSetSizes(Ather, localDOFs, localDOFs, globalDOFs, globalDOFs, ierr)
-        call MatMPIAIJSetPreallocation(Ather,maxWidth*1,PETSC_NULL_INTEGER,maxWidth*1,PETSC_NULL_INTEGER, ierr)
-        call MatSetOption(Ather,MAT_ROW_ORIENTED,PETSC_FALSE,ierr) !!! Fortran is column major
-        call VecCreateMPI(MPI_COMM_WORLD, localDOFs*1, globalDOFs*1, Pther, ierr)
         call VecSet(Pther,0.0_8,ierr)
 
         if(rank == 0)then
@@ -1196,7 +1257,7 @@ contains
                 allocate(cellMat(num_node*1,num_node*1))
                 allocate(cellVec(num_node*1))
                 do j = 1, num_node
-                    cellDOFs(1*(j - 1) + 1) = parray(CELL(i)%N(j)-1) * 1 + 0
+                    cellDOFs(1*(j - 1) + 1) = parray(CELL(i)%N(j)) * 1 + 0
                 enddo
                 !!! Integrate the cellMat
                 ! get the coords
@@ -1212,6 +1273,7 @@ contains
                     cellMat = cellMat + matmul(transpose(dNjdxi_ij(:,1:num_node)), k__mul__dNjdxi_ij(:,1:num_node))
                 end do
 
+                touchedMat = .false.
                 do in = 1, num_node
                     if(.not. isnan(dofFixTher(CELL(I)%N(in)))) then
                         nodeFix = dofFixTher(CELL(I)%N(in))
@@ -1228,8 +1290,18 @@ contains
                         cellMat(in,:) = 0.0_8
                         cellMat(:,in) = 0.0_8
                         cellMat(in,in) = nodeDiag
+                        ! print*,"Fixing",CELL(I)%N(in), nodeFix
+                        touchedMat = .true.
+
                     endif
                 enddo
+
+                ! if(touchedMat) then
+                !     print*, "CELL",i
+                !     do in2 = 1, num_node
+                !         print*, cellMat(in2,:)
+                !     enddo
+                ! endif
 
                 !!!
                 call MatSetValues(Ather, num_node*1, cellDOFs, num_node*1, cellDOFs, cellMat, ADD_VALUES, ierr)
@@ -1251,7 +1323,34 @@ contains
 
         call MatAssemblyBegin(Ather, MAT_FINAL_ASSEMBLY, ierr)
         call MatAssemblyEnd(Ather, MAT_FINAL_ASSEMBLY, ierr)
+        call VecAssemblyBegin(Pther, ierr)
+        call VecAssemblyEnd(Pther,ierr)
         !call MatView(Ather, PETSC_VIEWER_STDOUT_WORLD, ierr)
+        !call VecView(Pther, PETSC_VIEWER_STDOUT_WORLD, ierr)
+
+        ! call VecDuplicate(Pther, testvec, ierr)
+        ! call VecGetSize(testvec, Gsize, ierr)
+        ! if(rank == 0)then
+        !     do i = 0,(Gsize-1)
+        !         csize = i
+        !         cval = i
+        !         call VecSetValue(testvec, csize, cval, INSERT_VALUES, ierr)
+        !     enddo
+        ! endif
+        ! call VecAssemblyBegin(testvec, ierr)
+        ! call VecAssemblyEnd(testvec,ierr)
+
+        ! if(rank == 0) then
+        !     call VecCreateMPI(MPI_COMM_WORLD,Gsize,PETSC_DETERMINE, testvec2, ierr)
+        ! else
+        !     call VecCreateMPI(MPI_COMM_WORLD,0,PETSC_DETERMINE, testvec2, ierr)
+        ! endif
+        ! call VecScatterCreate(testvec, partitionedNumberingIndex, testvec2,PETSC_NULL_IS,&
+        !                       procToZeroScatter, ierr)
+        ! call VecScatterBegin(procToZeroScatter,testvec,testvec2,INSERT_VALUES,SCATTER_FORWARD,ierr)
+        ! call VecScatterEnd(procToZeroScatter,testvec,testvec2,INSERT_VALUES,SCATTER_FORWARD,ierr)
+        ! call VecScatterDestroy(procToZeroScatter, ierr)
+        ! call VecView(testvec2, PETSC_VIEWER_STDOUT_WORLD, ierr)
 
         CHKERRA(ierr)
     end subroutine
@@ -1277,11 +1376,58 @@ contains
 
     end subroutine
 
+    subroutine SolveThermal_Initialize !after setting up
+        PetscInt ierr
+        call KSPCreate(MPI_COMM_WORLD, KSPther, ierr)
+        call KSPSetOperators(KSPther, Ather, Ather, ierr)
+        call KSPSetFromOptions(KSPther, ierr)
+    end subroutine
+
     subroutine SolveThermal
+        PetscInt ierr
+        call KSPSolve(KSPther, Pther, Uther, ierr)
+        call VecView(Uther, PETSC_VIEWER_STDOUT_WORLD, ierr)
 
     end subroutine
 
     subroutine SolveElasticity
+
+    end subroutine
+
+    subroutine GatherVec1(vecdist, veczero)
+        Vec vecdist
+        Vec veczero
+        PetscInt ierr
+        VecScatter procToZeroScatter
+        call VecScatterCreate(vecdist, partitionedNumberingIndex, veczero,PETSC_NULL_IS,&
+                              procToZeroScatter, ierr)
+        call VecScatterBegin(procToZeroScatter,vecdist,veczero,INSERT_VALUES,SCATTER_FORWARD,ierr)
+        call VecScatterEnd(procToZeroScatter,vecdist,veczero,INSERT_VALUES,SCATTER_FORWARD,ierr)
+        call VecScatterDestroy(procToZeroScatter, ierr)
+        !call VecView(veczero, PETSC_VIEWER_STDOUT_WORLD, ierr)
+    end subroutine
+
+    subroutine output_plt_thermal(path, title)
+        Vec veczero
+        PetscInt ierr, rank
+        PetscScalar, pointer :: gathered(:)
+        character(*), intent(in) :: path, title
+
+        call MPI_COMM_RANK(MPI_COMM_WORLD, rank, ierr)
+        if(rank == 0) then
+            call VecCreateMPI(MPI_COMM_WORLD,globalDOFs,PETSC_DETERMINE, veczero, ierr)
+        else
+            call VecCreateMPI(MPI_COMM_WORLD,         0,PETSC_DETERMINE, veczero, ierr)
+        endif
+
+        call GatherVec1(Uther, veczero)
+        call VecGetArrayReadF90(veczero, gathered, ierr)
+        gatheredUther = gathered
+        if(rank == 0) then
+            call output_plt_scalar(path, title, gatheredUther, 'phi', .false.)
+        endif
+        call VecRestoreArrayReadF90(veczero, gathered, ierr)
+        call VecDestroy(veczero, ierr)
 
     end subroutine
 

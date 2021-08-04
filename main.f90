@@ -52,10 +52,18 @@ program main
     allocate(bcValueTher(NBSETS))
     allocate(bcTypeTher(NBSETS))
     bcValueTher = 0.0_8
-    bcTypeTher = 0
-    bcValueTher(1) = 1.0_8
-    bcValueTher(2) = 2.0_8
+    bcTypeTher = 1
+    bcTypeTher(1) = 0
+    bcTypeTher(3) = 0
+    bcTypeTher(4) = 0
+    bcTypeTher(6) = 0
+    bcValueTher(6) = 1.0_8
+    call SetUpThermalBC_BLOCKED
+    call SetUpThermal_InitializeObjects
     call SetUpThermal
+    call SolveThermal_Initialize
+    call SolveThermal
+    call output_plt_thermal("./out2_ther.plt", "goodstart")
 
 
     if(rank == 0) then

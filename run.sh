@@ -12,4 +12,4 @@ then
 fi
 #echo npis${numProc}
 #echo optis$@
-mpirun -np ${numProc} --oversubscribe ./main.exe $@
+mpirun -np ${numProc} --oversubscribe ./main.exe $@ -ksp_monitor

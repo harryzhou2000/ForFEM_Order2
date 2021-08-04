@@ -25,7 +25,7 @@ subroutine readgfile
     enddo
 300 format(9X,I2,1X,I2,1X)
 
-    !   read zones
+    !read zones
     allocate(ZONE(NGRPS)) !zone elem set
     allocate(zone_label(NGRPS)) !zone label strings
     allocate(GRPIT(NGRPS)) !the basic info of zones
@@ -56,6 +56,7 @@ subroutine readgfile
         do i = 1,nentry(m)
             read(IIN,600) bcread(m)%elem_id(i),bcread(m)%elem_type(i),bcread(m)%elem_face(i)
         enddo
+        print*,'readbc', m, bname(m)
     enddo
     !
     ! ... output the bad cell
