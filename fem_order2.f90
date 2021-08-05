@@ -40,7 +40,7 @@ module fem_order2
     type(tMat) :: Aelas !stiffness for elasticity
     type(tVec) :: Pelas !load Vector for elasticity
     type(tVec) :: Uelas !solution Vector for elasticity
-    real(8), allocatable :: gatheredUelas(:)
+    !real(8), allocatable :: gatheredUelas(:)
     real(8), allocatable :: dofFixElas(:)
     real(8), allocatable :: bcValueElas(:)
     integer(4), allocatable :: bcTypeElas(:)
@@ -49,10 +49,15 @@ module fem_order2
     type(tMat) :: Ather !stiffness for thermal
     type(tVec) :: Pther !load Vector for thermal
     type(tVec) :: Uther !solution Vector for elasticity
-    real(8), allocatable :: gatheredUther(:)
+    !real(8), allocatable :: gatheredUther(:)
     real(8), allocatable :: dofFixTher(:)
     real(8), allocatable :: bcValueTher(:)
     integer(4), allocatable :: bcTypeTher(:)
+
+    !!scatterers
+    VecScatter procToZeroScatter
+    VecScatter procToZeroScatter3x
+    logical if_procToZeroScatter_alive, if_procToZeroScatter3x_alive
 
     !topology of mesh nodes, should be parallized or upgraded to PETSC's dmplex
     !serial for proc0
@@ -60,8 +65,8 @@ module fem_order2
     !node->nodes counter uncompressed
     !serial for proc0
     integer, allocatable :: AdjacencyNum0(:)
-
-    !using proc0, we assemble A and P
+    PetscInt, allocatable :: localAdjacencyNum(:)
+    PetscInt, allocatable :: ghostAdjacencyNum(:)
 
     integer, allocatable :: Ather_r_pos
 
@@ -89,6 +94,14 @@ module fem_order2
     real(8), allocatable :: point_partition(:)
 
 contains
+    subroutine initializeStatus
+        PetscInt ierr
+        call VecScatterDestroy(procToZeroScatter, ierr)
+        call VecScatterDestroy(procToZeroScatter3x, ierr)
+        if_procToZeroScatter3x_alive = .false.
+        if_procToZeroScatter_alive = .false.
+    end subroutine
+
     subroutine initializeLib
         real(8) :: my_coord(3)
 
@@ -595,6 +608,7 @@ contains
 
     end subroutine
 
+    !this is a tototally globals.mod-procedure
     subroutine ReducePoints
         use globals
         integer, allocatable :: newPointInd(:)
@@ -684,6 +698,7 @@ contains
         end do
     end subroutine
 
+    ! gadget
     function getElemID(CELLI) result(ID)
         integer, allocatable, intent(in) :: CELLI(:)
         integer :: ID
@@ -701,6 +716,7 @@ contains
         end select
     end function
 
+    ! gadget
     function getElemIDFace(FACEI) result(ID)
         integer, allocatable, intent(in) :: FACEI(:)
         integer :: ID
@@ -825,6 +841,7 @@ contains
     end subroutine
 
     ! A seq routine, only 1 process should go
+    ! TODO: adapt to PETSC_SCALAR
     subroutine output_plt_scalar(path, title, DATAin, DATAname, ifCell)
         use globals
         implicit none
@@ -902,6 +919,94 @@ contains
         close(IOUT2)
     end subroutine
 
+    ! Input DATAin is {d1[1] d2[1] d3[1] d1[2] d2[2] d3[2] ...}
+    ! TODO: adapt to PETSC_SCALAR
+    subroutine output_plt_scalar3x(path, title, DATAin, DATAname1, DATAname2, DATAname3, ifCell)
+        use globals
+        implicit none
+        character(*), intent(in) :: path
+        integer(kind = 4) :: buffer_INT32
+        character(len=512) :: headhead
+        character(*),intent(in) :: title
+        !integer :: num_node_in_elem, i
+        !integer(kind = 4) :: aux_node(8)
+        !real(kind = 8) :: minCoord, maxCoord
+        real(kind = 8), intent(in) :: DATAin(:)
+        character(*), intent(in) :: DATAname1, DATAname2, DATAname3
+        integer  i
+        logical ifCell
+        integer(4) CellInd
+        real(8) minmaxs(6)
+        ! integer rank, ierr
+        ! call MPI_COMM_RANK(MPI_COMM_WORLD,rank, ierr)
+        ! if (rank .ne. 0) then
+        !     return
+        ! end if
+        CellInd = 0_4
+        if(ifCell) then
+            CellInd = 1_4
+        endif
+
+        if (.not. allocated(COORD)) then !using coord allocated to
+            print *,"error::output_plt_mesh::coord data not allocated when calling output mesh"
+            stop
+        end if
+        print *,"===Writing Data ",DATAname1, DATAname2, DATAname3,", num point ", size(COORD,2), " num elem ", size(CELL)
+
+        close(IOUT2)
+        open(IOUT2, file = path , Form = 'Unformatted' , Access = "Stream", STATUS = "Replace",  Action = "Write")
+        headhead = "#!TDV112"
+        write(IOUT2) headhead(1:8), 1_4, 2_4 !_ _ solutiontype
+        call write_binary_plt_string(title, IOUT2)
+        write(IOUT2) 3_4 !only 3 data
+        call write_binary_plt_string(DATAname1, IOUT2)
+        call write_binary_plt_string(DATAname2, IOUT2)
+        call write_binary_plt_string(DATAname3, IOUT2)
+
+        !one zone
+        write(IOUT2) 299.0_4 !zone
+        headhead = "main_zone"
+        call write_binary_plt_string(headhead, IOUT2)
+        write(IOUT2) -1_4, -1_4, 0.0_8, -1_4, 5_4 !ParentZone, StrandID, SolutionTime, DZC, zoneType=FEBRICK
+        write(IOUT2) 1_4, CellInd, CellInd, CellInd  !specifyVarLocation
+        write(IOUT2) 0_4, 0_4
+        buffer_INT32 = size(COORD,2)
+        write(IOUT2) buffer_INT32 !numpoints
+        buffer_INT32 = size(CELL)
+        write(IOUT2) buffer_INT32, 0_4, 0_4, 0_4, 0 !numelems, IJKCelldim, no auxiliary data
+
+        write(IOUT2) 357.0_4 !end of header
+
+        write(IOUT2) 299.0_4 !zone
+        write(IOUT2) 2_4 !print xyz as double
+        write(IOUT2) 0_4, 0_4, -1_4 !nopassive nosharing nosharing
+        minmaxs = getMinMax3x(DATAin)
+        write(IOUT2) minmaxs
+        do i = 1,(size(DATAin)/3)
+            write(IOUT2) DATAin((i-1)*3+1)
+        enddo
+        do i = 1,(size(DATAin)/3)
+            write(IOUT2) DATAin((i-1)*3+2)
+        enddo
+        do i = 1,(size(DATAin)/3)
+            write(IOUT2) DATAin((i-1)*3+3)
+        enddo
+        ! write(IOUT2) DATAin
+        if(ifCell) then
+            if(size(DATAin) .ne. size(CELL) * 3) then
+                print*,"Error::output_plt_scalar::DATA size ",size(DATAin)," not equal to CELL ",size(CELL)
+                stop
+            end if
+        else
+            if(size(DATAin) .ne. size(COORD,2) * 3) then
+                print*,"Error::output_plt_scalar::DATA size ",size(DATAin)," not equal to VERT",size(COORD,2)
+                stop
+            end if
+        endif
+
+        close(IOUT2)
+    end subroutine
+
     subroutine write_binary_plt_string(title,IOUT2)
         implicit none
         character(*),intent(in) :: title
@@ -948,6 +1053,12 @@ contains
         PetscInt,allocatable:: cellDOFs(:)
 
         PetscInt,allocatable::numberingExtendedVal(:)
+        PetscScalar, allocatable::tempScalarizedWidth(:)
+        PetscInt, allocatable::tempScalarizedInsertionIndex(:)
+        Vec widthVecZero
+        Vec widthVecDist
+        PetscScalar, pointer :: pwidth(:)
+        PetscInt currentProc, numOffProc
 
         !!!!!!!!!!!!!!!!!!!!!!!!!
         call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
@@ -1155,6 +1266,67 @@ contains
         ! call VecView(v2,PETSC_VIEWER_STDOUT_WORLD, ierr)
         !!!
 
+
+        !!!!!!!! distribute adjacency
+
+        if(rank == 0)then
+            allocate(tempScalarizedWidth(globalDOFs))
+            allocate(tempScalarizedInsertionIndex(globalDOFs))
+            do i = 1, globalDOFs
+                tempScalarizedInsertionIndex(i) = i-1
+            enddo
+            tempScalarizedWidth = AdjacencyNum0
+            call VecCreateMPI(MPI_COMM_WORLD, globalDOFs, globalDOFs, widthVecZero, ierr)
+            call VecSetValues(widthVecZero,globalDOFs,tempScalarizedInsertionIndex,tempScalarizedWidth,INSERT_VALUES,ierr)
+        else
+            call VecCreateMPI(MPI_COMM_WORLD, 0         , globalDOFs, widthVecZero, ierr)
+        endif
+        call VecAssemblyBegin(widthVecZero, ierr)
+        call VecAssemblyEnd(widthVecZero,ierr)
+        !call VecView(widthVecZero,PETSC_VIEWER_STDOUT_WORLD, ierr)
+
+        call VecCreateMPI(MPI_COMM_WORLD, localDOFs, globalDOFs, widthVecDist, ierr)
+        call GatherVec1(widthVecDist, widthVecZero, .true. )
+
+        call VecGetArrayReadF90(widthVecDist, pwidth, ierr)
+        if(allocated(localAdjacencyNum)) then
+            deallocate(localAdjacencyNum)
+        endif
+        allocate(localAdjacencyNum(localDOFs))
+        localAdjacencyNum = nint(pwidth) + 1 ! nearest int, totalnum needs += 1
+        call VecRestoreArrayReadF90(widthVecDist, pwidth, ierr)
+        call IsGetIndicesF90(partitionIndex, parray, ierr)
+        if(rank == 0)then
+            do i = 1, globalDOFs
+                currentProc = parray(i)
+                tempScalarizedWidth(i) = 0._8
+                do j = (AdjacencyCounter%rowStart(i)+1), (AdjacencyCounter%rowStart(i+1)-1+1)
+                    if(currentProc .ne. parray((AdjacencyCounter%column(j)+1)) )then !if that vert is not on currentProc
+                        tempScalarizedWidth(i) = tempScalarizedWidth(i) + 1._8
+                    endif
+                enddo
+            enddo
+            call VecSetValues(widthVecZero,globalDOFs,tempScalarizedInsertionIndex,tempScalarizedWidth,INSERT_VALUES,ierr)
+            deallocate(tempScalarizedInsertionIndex)
+            deallocate(tempScalarizedWidth)
+        endif
+        call VecAssemblyBegin(widthVecZero, ierr)
+        call VecAssemblyEnd(widthVecZero,ierr)
+        call VecView(widthVecZero,PETSC_VIEWER_STDOUT_WORLD, ierr)
+        call GatherVec1(widthVecDist, widthVecZero, .true. )
+        call VecGetArrayReadF90(widthVecDist, pwidth, ierr)
+        if(allocated(ghostAdjacencyNum)) then
+            deallocate(ghostAdjacencyNum)
+        endif
+        allocate(ghostAdjacencyNum(localDOFs))
+        ghostAdjacencyNum = nint(pwidth) ! nearest int
+        localAdjacencyNum = localAdjacencyNum - ghostAdjacencyNum ! save the ghosters
+        call VecRestoreArrayReadF90(widthVecDist, pwidth, ierr)
+        call VecDestroy(widthVecZero, ierr)
+        call VecDestroy(widthVecDist, ierr)
+
+        !!!!!!!! distribute adjacency
+
     end subroutine
 
     !after readgrid initializeLib
@@ -1209,7 +1381,7 @@ contains
         call MatCreate(MPI_COMM_WORLD, Ather, ierr)
         call MatSetType(Ather,MATMPIAIJ,ierr)
         call MatSetSizes(Ather, localDOFs, localDOFs, globalDOFs, globalDOFs, ierr)
-        call MatMPIAIJSetPreallocation(Ather,maxWidth*1,PETSC_NULL_INTEGER,maxWidth*1,PETSC_NULL_INTEGER, ierr)
+        call MatMPIAIJSetPreallocation(Ather,maxWidth*1,localAdjacencyNum,maxWidth*1,ghostAdjacencyNum, ierr)
         call MatSetOption(Ather,MAT_ROW_ORIENTED,PETSC_FALSE,ierr) !!! Fortran is column major
         call VecCreateMPI(MPI_COMM_WORLD, localDOFs*1, globalDOFs*1, Pther, ierr)
         call VecCreateMPI(MPI_COMM_WORLD, localDOFs*1, globalDOFs*1, Uther, ierr)
@@ -1387,24 +1559,37 @@ contains
         PetscInt ierr
         call KSPSolve(KSPther, Pther, Uther, ierr)
         call VecView(Uther, PETSC_VIEWER_STDOUT_WORLD, ierr)
-
     end subroutine
 
     subroutine SolveElasticity
 
     end subroutine
 
-    subroutine GatherVec1(vecdist, veczero)
+    ! when reverse, zero->dist, else dist->zero
+    subroutine GatherVec1(vecdist, veczero, ifreverse)
         Vec vecdist
         Vec veczero
+        ! Vec vecdist2
         PetscInt ierr
-        VecScatter procToZeroScatter
-        call VecScatterCreate(vecdist, partitionedNumberingIndex, veczero,PETSC_NULL_IS,&
-                              procToZeroScatter, ierr)
-        call VecScatterBegin(procToZeroScatter,vecdist,veczero,INSERT_VALUES,SCATTER_FORWARD,ierr)
-        call VecScatterEnd(procToZeroScatter,vecdist,veczero,INSERT_VALUES,SCATTER_FORWARD,ierr)
-        call VecScatterDestroy(procToZeroScatter, ierr)
-        !call VecView(veczero, PETSC_VIEWER_STDOUT_WORLD, ierr)
+        logical ifreverse
+        if(.not. (if_procToZeroScatter_alive)) then
+            call VecScatterCreate(vecdist, partitionedNumberingIndex, veczero,PETSC_NULL_IS,&
+                                  procToZeroScatter, ierr)
+            if_procToZeroScatter_alive = .true.
+        endif
+        if(ifreverse) then
+            call VecScatterBegin(procToZeroScatter,veczero,vecdist,INSERT_VALUES,SCATTER_REVERSE,ierr)
+            call VecScatterEnd(procToZeroScatter,veczero,vecdist,INSERT_VALUES,SCATTER_REVERSE,ierr)
+        else
+            call VecScatterBegin(procToZeroScatter,vecdist,veczero,INSERT_VALUES,SCATTER_FORWARD,ierr)
+            call VecScatterEnd(procToZeroScatter,vecdist,veczero,INSERT_VALUES,SCATTER_FORWARD,ierr)
+        endif
+        ! ! cheking if reverse is good
+        ! call VecDuplicate(vecdist, vecdist2, ierr)
+        ! call VecScatterBegin(procToZeroScatter,veczero,vecdist2,INSERT_VALUES,SCATTER_REVERSE,ierr)
+        ! call VecScatterEnd(procToZeroScatter,veczero,vecdist2,INSERT_VALUES,SCATTER_REVERSE,ierr)
+        ! call VecAXPY(vecdist2,-1.0_8,vecdist,ierr)
+        ! call VecView(vecdist2, PETSC_VIEWER_STDOUT_WORLD, ierr)
     end subroutine
 
     subroutine output_plt_thermal(path, title)
@@ -1420,15 +1605,17 @@ contains
             call VecCreateMPI(MPI_COMM_WORLD,         0,PETSC_DETERMINE, veczero, ierr)
         endif
 
-        call GatherVec1(Uther, veczero)
+        call GatherVec1(Uther, veczero, .false.)
         call VecGetArrayReadF90(veczero, gathered, ierr)
-        gatheredUther = gathered
+        ! gatheredUther = gathered
         if(rank == 0) then
-            call output_plt_scalar(path, title, gatheredUther, 'phi', .false.)
+            call output_plt_scalar(path, title, gathered, 'phi', .false.)
         endif
         call VecRestoreArrayReadF90(veczero, gathered, ierr)
         call VecDestroy(veczero, ierr)
-
+        ! if(rank == 0) then
+        !     print*,'UtherGather:: ', allocated(gatheredUther)
+        ! endif
     end subroutine
 
 end module

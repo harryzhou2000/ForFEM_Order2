@@ -27,6 +27,7 @@ program main
 
     FILEINP = "./mark2_external.neu"
     outfile = "./out2.plt"
+    call initializeStatus
     call readgfile
     call initializeLib
     call InitializeConstitution

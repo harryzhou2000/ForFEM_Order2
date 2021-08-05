@@ -6,7 +6,7 @@
 ! 3. solve the gradient: use dgels or dgelss solve least-square nodal gradient
 !    3.1 average nodal values (push other nodes)
 
-
+#define int integer
 
 
  
@@ -15,10 +15,10 @@ module mat_csr
     implicit none
 
     type Csr
-        integer nrow, nnz !number of local rows and non-zeros, set with subroutines
-        integer globalRowStart !where row 0 maps to the global row
-        integer, allocatable :: rowStart(:)  ! set with subroutines
-        integer, allocatable :: column(:)    ! set with subroutines
+        int nrow, nnz !number of local rows and non-zeros, set with subroutines
+        int globalRowStart !where row 0 maps to the global row
+        int, allocatable :: rowStart(:) !zero based index ! set with subroutines
+        int, allocatable :: column(:)   !zero based index ! set with subroutines
         real(8), allocatable :: value(:)     ! set with subroutines
         ! integer, allocatable :: OrowStart(:) ! set with subroutines
         ! integer, allocatable :: Ocolumn(:)   ! set with subroutines
@@ -28,13 +28,13 @@ contains
     ! resets the matrix to nnrow rows
     subroutine Csr_SetNROW(A,nnrow)
         type(Csr),intent(inout) :: A
-        integer, intent(in) :: nnrow
+        int, intent(in) :: nnrow
         A%nrow = nnrow
     end subroutine
 
     subroutine Csr_SetNNZ(A,nnnz)
         type(Csr),intent(inout) :: A
-        integer, intent(in) :: nnnz
+        int, intent(in) :: nnnz
         A%nnz = nnnz
     end subroutine
 
@@ -77,4 +77,6 @@ contains
     end subroutine
 
 end module
+
+#undef int
 

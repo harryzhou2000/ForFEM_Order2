@@ -1,10 +1,12 @@
 !linear set
+!int is to be decided
+#define int integer
 
 module linear_set
     implicit none
 
     type lset
-        integer, pointer ::d(:)
+        int, pointer ::d(:)
         integer(4) :: siz
     end type
 
@@ -21,8 +23,8 @@ contains
     subroutine lsetPush (S,newElem)
         implicit none
         type(lset) S
-        integer newElem, i
-        integer, pointer :: newd(:)
+        int newElem, i
+        int, pointer :: newd(:)
         integer(4) oldCap
 
         do i = 1, S%siz
@@ -47,9 +49,9 @@ contains
 
 
     subroutine int_mergeSort(Seq,lo,hi)
-        integer,pointer :: Seq(:)
-        integer lo, hi
-        integer,pointer :: Useq(:)
+        int:: Seq(:)
+        int lo, hi
+        int,pointer :: Useq(:)
         if(.not. lo < hi) then
             return
         endif
@@ -59,9 +61,9 @@ contains
     end subroutine
 
     recursive subroutine int_mergeSort_Rec(Seq, lo, hi, Useq) ![lo,hi)
-        integer,pointer :: Seq(:)
-        integer lo, hi, mid
-        integer,pointer :: Useq(:)
+        int :: Seq(:)
+        int lo, hi, mid
+        int :: Useq(:)
 
         if(.not. lo < hi - 1) then
             return
@@ -73,9 +75,9 @@ contains
     end subroutine
 
     subroutine int_merge_inplace(Seq,lo,mid,hi,Useq)
-        integer,pointer :: Seq(:)
-        integer,pointer :: Useq(:)
-        integer lo, mid, hi, lop, midp, newp
+        int :: Seq(:)
+        int :: Useq(:)
+        int lo, mid, hi, lop, midp, newp
         Useq(1:mid-lo) = Seq(lo:mid-1)
         lop = lo
         midp = mid
@@ -104,8 +106,8 @@ contains
     end subroutine
 
     function int_checkSorted(Seq,lo,hi) result(res) ! true if sorted
-        integer,pointer :: Seq(:)
-        integer lo,hi,i
+        int Seq(:)
+        int lo,hi,i
         logical res
         res = .true.
         do i = lo+1,hi-2
@@ -116,10 +118,10 @@ contains
     end function
 
     subroutine int_reduceSorted(Seq,lo,hi,nhi)
-        integer,pointer :: Seq(:)
-        integer lo, hi
-        integer pwrite, psee
-        integer nhi
+        int :: Seq(:)
+        int lo, hi
+        int pwrite, psee
+        int nhi
         pwrite = lo + 1
         psee = lo + 1
 
@@ -146,3 +148,5 @@ contains
     
 
 end module
+
+#undef int

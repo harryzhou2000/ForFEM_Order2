@@ -22,7 +22,7 @@ program test_set
             call random_number(rout)
             seq(i) = floor(rout*55)
         enddo
-        call int_mergeSort(seq2,1,3001)
+        call int_mergeSort(seq,1,3001)
         if(.not. int_checkSorted(seq2,1,3001)) then
             print*,"BAD ", j
         endif
