@@ -50,29 +50,26 @@ module fem_order2
     type(csr) localCells
     PetscInt  nLocalCells
 
-
     !!!! solution data
     KSP  :: KSPelas
     Mat :: Aelas !stiffness for elasticity
     Vec :: Pelas !load Vector for elasticity
     Vec :: Uelas !solution Vector for elasticity
     !real(8), allocatable :: gatheredUelas(:)
-    PetscScalar, allocatable :: dofFixElas(:)
+    Vec dofFixElas
     PetscScalar, allocatable :: bcValueElas(:)
     PetscInt, allocatable :: bcTypeElas(:)
-    PetscInt, allocatable :: localBcTypeElas(:)
-    PetscScalar, allocatable :: localBcValueElas(:)
+    Vec dofFixElasDist
 
     KSP  :: KSPther
     Mat :: Ather !stiffness for thermal
     Vec :: Pther !load Vector for thermal
     Vec :: Uther !solution Vector for elasticity
     !real(8), allocatable :: gatheredUther(:)
-    PetscScalar, allocatable :: dofFixTher(:)
+    Vec dofFixTher
     PetscScalar, allocatable :: bcValueTher(:)
     PetscInt, allocatable :: bcTypeTher(:)
-    PetscInt, allocatable :: localBcTypeTher(:)
-    PetscScalar, allocatable :: localBcValueTher(:)
+    Vec dofFixTherDist
 
     !!!! scatterers
     VecScatter procToZeroScatter
@@ -86,6 +83,9 @@ module fem_order2
     !node->nodes counter uncompressed
     !serial for proc0
     integer, allocatable :: AdjacencyNum0(:)
+    !seral for proc0
+    PetscInt, allocatable :: localCellSizes(:), localGhostSizes(:)
+
     !parallel
     PetscInt, allocatable :: localAdjacencyNum(:)
     PetscInt, allocatable :: ghostAdjacencyNum(:) !this is the ghosting in matrices
@@ -102,8 +102,8 @@ module fem_order2
         real(kind=8), allocatable :: NImr(:, :) !N at intpoints M*R
         real(kind=8), allocatable :: dNIdLimr(:, :, :) !dNdL at intpoints 3*M*R
 
-        integer(kind=4)              :: num_face ! F
-        integer(kind=4), allocatable :: face_size(:)! FS
+        integer(kind=4)              :: num_face       ! F
+        integer(kind=4), allocatable :: face_size(:)   ! FS
         integer(kind=4), allocatable :: face_node(:,:) ! F*max(FS)
     end type
 
@@ -1355,13 +1355,13 @@ contains
         call VecDestroy(widthVecZero, ierr)
         call VecDestroy(widthVecDist, ierr)
         call IsRestoreIndicesF90(partitionIndex, parray, ierr)
-
         !!!!!!! distribute adjacency
         call DoCellPartition
+        call DoGeomPartition
     end subroutine
 
     ! do not call
-    subroutine DoCellPartition
+    subroutine DoCellPartition !creates ghostingGlobals and lcoalcells
         use globals
         use linear_set
         !!!!!!! cell partition and cell ghost deriving
@@ -1369,8 +1369,6 @@ contains
         PetscInt ncells, nverts, i, j, ir, elem_id, num_node, current_row_start
         integer rank, siz
         PetscInt, pointer :: parray(:), parray2(:)
-        PetscInt, allocatable :: localCellSizes(:)
-        PetscInt, allocatable :: localGhostSizes(:)
         type(petscInt_vardimWrapper), allocatable :: SendGhosts(:)
         type(Csr), allocatable :: SendCells(:)
         PetscInt ghostLocFound
@@ -1556,20 +1554,42 @@ contains
             call MPI_Waitall(siz, sendreqs, MPI_STATUSES_IGNORE, ierr)
         endif
         call MPI_Wait(recvreq(1), MPI_STATUS_IGNORE, ierr) ! TODO : add status
-        if(rank == 0) then
-            print*,localCells%column
-        endif
 
+        allocate(ghostingGlobal3x(nghost*3))
+        do i = 1,nghost
+            ghostingGlobal3x((i-1)*3+1) = ghostingGlobal(i) * 3 + 0
+            ghostingGlobal3x((i-1)*3+2) = ghostingGlobal(i) * 3 + 1
+            ghostingGlobal3x((i-1)*3+3) = ghostingGlobal(i) * 3 + 2
+        enddo
 
+        !print*,'rank',indexLo,indexHi
         do i = 1, localCells%nnz
-            if (localCells%column(i) > 0 )then
-
+            if (localCells%column(i) >= 0 )then
+                if(localCells%column(i)>= indexHi .or. localCells%column(i) < indexLo)then
+                    print*, 'illegal localCells%column(i) ! '
+                    stop
+                endif
+                localCells%column(i) = localCells%column(i) - indexLo
+            else ! is ghost
+                localCells%column(i) = -1 - localCells%column(i) + localDOFs
             endif
         enddo
 
         if(rank == 0) then
-            deallocate(localCellSizes)
-            deallocate(localGhostSizes)
+            !print*,localCells%column
+        endif
+
+        ! do i = 1, localCells%nnz
+        !     if (localCells%column(i) < 0 .or. localCells%column(i) >= localDOFs)then
+        !         print*,rank,'not local!!'
+        !     endif
+        !     if (localCells%column(i) < 0 .or. localCells%column(i) >= localDOFs + nghost)then
+        !         print*,rank,'not legal!!'
+        !     endif
+        ! enddo
+        nlocalCells = localCells%nrow
+
+        if(rank == 0) then
             do i = 1, siz
                 deallocate(SendGhosts(i)%N)
                 call Csr_DeleteMat(SendCells(i))
@@ -1580,8 +1600,40 @@ contains
             deallocate(sendstatus)
         endif
 
-        call IsRestoreIndicesF90(partitionIndex, parray, ierr)
+        call IsRestoreIndicesF90(partitionIndex,            parray,  ierr)
         call IsRestoreIndicesF90(partitionedNumberingIndex, parray2, ierr)
+    end subroutine
+
+    ! do not call
+    subroutine DoGeomPartition ! creates localcoords(needs DoCellPartition) and do first ghost updating
+        use globals
+        PetscInt ierr, i
+        integer rank, siz
+        Vec zerocoord
+
+        call MPI_COMM_SIZE(MPI_COMM_WORLD, siz, ierr)
+        call MPI_COMM_RANK(MPI_COMM_WORLD, rank, ierr)
+        if(rank == 0) then
+            call VecCreateMPI(MPI_COMM_WORLD, globalDOFs*3, globalDOFs*3, zerocoord, ierr)
+            do i = 1, globalDOFs
+                call VecSetValues(zerocoord,3,(/(i-1)*3+0, (i-1)*3+1, (i-1)*3+2/), COORD(:,i),INSERT_VALUES,ierr)
+            enddo
+        else
+            call VecCreateMPI(MPI_COMM_WORLD, 0         ,   globalDOFs*3, zerocoord, ierr)
+        endif
+        call VecAssemblyBegin(zerocoord,ierr)
+        call VecAssemblyEnd  (zerocoord,ierr)
+        call VecCreateGhost(MPI_COMM_WORLD, localDOFs*3, globalDOFs*3,nghost*3,ghostingGlobal3x ,localCoords, ierr)
+        call GatherVec3(localCoords, zerocoord, .true. )
+        !call VecView(localCoords,PETSC_VIEWER_STDOUT_WORLD, ierr)
+        call VecDestroy(zerocoord, ierr)
+        call VecGhostUpdateBegin(localCoords,INSERT_VALUES,SCATTER_FORWARD, ierr); 
+        call VecGhostUpdateEnd  (localCoords,INSERT_VALUES,SCATTER_FORWARD, ierr); 
+    end subroutine
+
+    ! do not call
+    subroutine DoBCPartition ! create local bcvals
+
     end subroutine
 
     !after readgrid initializeLib
@@ -1597,18 +1649,16 @@ contains
         maxWidth = adjMaxWidth
         call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
         call MPI_COMM_SIZE(MPI_COMM_WORLD,siz,ierr)
+        call VecDestroy(dofFixTher, ierr)
 
         if(rank==0) then
             ncells = size(CELL)
             nverts = size(COORD,dim=2)
             print*,nverts,'bcnverts'
             !!! mark set dofs
-            if(allocated(dofFixTher)) then
-                deallocate(dofFixTher)
-            endif
-            allocate(dofFixTher(nverts))
+            call VecCreateMPI(MPI_COMM_WORLD, globalDOFs, globalDOFs, dofFixTher, ierr)
             minus1 = -1
-            dofFixTher = sqrt(minus1)
+            call VecSet(dofFixTher ,sqrt(minus1), ierr)
             do ibc = 1, NBSETS
                 if(bcTypeTher(ibc) == 0) then
                     !print*,'fixedbc', ibc, bname(ibc),bcValueTher(ibc)
@@ -1622,12 +1672,21 @@ contains
                         faceNodes(1:facesize) = elem_lib(elem_id)%face_node(ifc, 1:facesize)
                         do j = 1,facesize
                             faceNodes(j) = CELL(ie)%N(faceNodes(j))
-                            dofFixTher(faceNodes(j)) = bcValueTher(ibc)
+                            call VecSetValue(dofFixTher, faceNodes(j)-1, bcValueTher(ibc),INSERT_VALUES, ierr)
                         enddo
                     enddo
                 endif
             enddo
+        else
+            call VecCreateMPI(MPI_COMM_WORLD,      0, globalDOFs, dofFixTher, ierr)
+            call VecSet(dofFixTher ,sqrt(minus1), ierr) ! it is collective! must also call
         endif
+        call VecAssemblyBegin(dofFixTher,ierr)
+        call VecAssemblyEnd  (dofFixTher,ierr)
+        call VecCreateGhost(MPI_COMM_WORLD, localDOFs, globalDOFs,nghost,ghostingGlobal ,dofFixTherDist, ierr)
+        call GatherVec1(dofFixTherDist, dofFixTher, .true. )
+        call VecGhostUpdateBegin(dofFixTherDist,INSERT_VALUES,SCATTER_FORWARD, ierr); 
+        call VecGhostUpdateEnd  (dofFixTherDist,INSERT_VALUES,SCATTER_FORWARD, ierr); 
     end subroutine
 
     subroutine SetUpThermal_InitializeObjects ! To create mat and vecs
@@ -1650,6 +1709,7 @@ contains
         PetscInt ierr
         PetscInt maxWidth
         PetscInt, pointer :: parray(:)
+        PetscScalar, pointer :: pfix(:)
         integer :: rank, siz
         PetscInt i, j, ncells, nverts, elem_id, num_node, num_intpoint, ip, in, in2, &
             ie, ibc, ifc, facesize
@@ -1674,6 +1734,7 @@ contains
         ncells = size(CELL)
         nverts = size(COORD,dim=2)
         call IsGetIndicesF90(partitionedNumberingIndex, parray, ierr) !parray is now partitionedNumberingIndex
+        call VecGetArrayReadF90(dofFixTher, pfix, ierr)
 
         call VecSet(Pther,0.0_8,ierr)
 
@@ -1704,12 +1765,12 @@ contains
 
                 touchedMat = .false.
                 do in = 1, num_node
-                    if(.not. isnan(dofFixTher(CELL(I)%N(in)))) then
-                        nodeFix = dofFixTher(CELL(I)%N(in))
+                    if(.not. isnan(pfix(CELL(I)%N(in)))) then
+                        nodeFix = pfix(CELL(I)%N(in))
                         nodeDiag = cellMat(in,in)
                         cellVec = -cellMat(:,in)
                         do in2 = 1, num_node
-                            if(.not. isnan(dofFixTher(CELL(I)%N(in2)))) then
+                            if(.not. isnan(pfix(CELL(I)%N(in2)))) then
                                 cellVec(in2) = 0.0_8 ! do not add rhs for other fixed dofs
                             endif
                         enddo
@@ -1736,11 +1797,14 @@ contains
                 call MatSetValues(Ather, num_node*1, cellDOFs, num_node*1, cellDOFs, cellMat, ADD_VALUES, ierr)
                 !print*,i
                 !print*,cellMat
+                !print*,'CELLDOFS',cellDOFs
                 deallocate(cellDOFs)
                 deallocate(cellMat)
                 deallocate(cellVec)
             enddo
         endif
+        call VecRestoreArrayReadF90(dofFixTher, pfix, ierr)
+
         !!!TODO: face integral for type 2 or 3 bc
         if(rank == 0)then
             do ibc = 1, NBSETS
@@ -1783,6 +1847,136 @@ contains
 
         CHKERRA(ierr)
     end subroutine
+
+    subroutine SetUpThermalPara
+        use globals
+        PetscInt ierr
+        PetscInt maxWidth
+        PetscInt, pointer :: parray(:)
+        PetscScalar, pointer :: pfix(:)
+        PetscScalar, pointer :: pcoord(:)
+        PetscInt celllo,cellhi
+        integer :: rank, siz
+        PetscInt i, j, ncells, nverts, elem_id, num_node, num_intpoint, ip, in, in2, &
+            ie, ibc, ifc, facesize
+        PetscInt faceNodes(8)
+        PetscInt, allocatable::cellDOFs(:)
+        PetscScalar, allocatable::cellMat(:,:), cellVec(:)
+        real(8) :: elem_coord(27,3), Jacobi(3,3), invJacobi(3,3)  !max num node is 27 ! warning
+        real(8) :: dNjdxi_ij(3,27), k__mul__dNjdxi_ij(3,27)
+        real(8) minus1, nodeFix, nodeDiag
+        logical touchedMat
+        !
+        ! Vec testvec, testvec2
+        ! VecScatter procToZeroScatter
+        ! PetscInt Gsize, csize
+        ! PetscScalar cval
+
+        !!! startup
+        maxWidth = adjMaxWidth
+        call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
+        call MPI_COMM_SIZE(MPI_COMM_WORLD,siz,ierr)
+        ncells = size(CELL)
+        nverts = size(COORD,dim=2)
+        call IsGetIndicesF90(partitionedNumberingIndex, parray, ierr) !parray is now partitionedNumberingIndex
+        call VecGetArrayReadF90(dofFixTherDist, pfix, ierr)
+        call VecGetArrayReadF90(localCoords,    pcoord, ierr)
+
+        call VecSet(Pther,0.0_8,ierr)
+        !print*,rank,nlocalCells
+
+        do i = 1, nLocalCells
+            celllo = localCells%rowStart(i)
+            cellhi = localCells%rowStart(i+1)
+            elem_id = getElemID(cellhi - celllo)
+            num_intpoint = elem_lib(elem_id)%num_intpoint
+            num_node = elem_lib(elem_id)%num_node
+            allocate(cellDOFs(num_node*1))
+            allocate(cellMat(num_node*1,num_node*1))
+            allocate(cellVec(num_node*1))
+            do j = 1, num_node
+                if(localCells%column(celllo+j) < localDOFs) then
+                    cellDOFs(1*(j - 1) + 1) = (localCells%column(celllo + j) + indexLo) * 1 + 0
+                else
+                    cellDOFs(1*(j - 1) + 1) = ghostingGlobal(localCells%column(celllo + j) - localDOFs + 1) * 1 + 0
+                endif
+            enddo
+            !!! Integrate the cellMat
+            ! get the coords
+            do in = 1, num_node
+                elem_coord(in,:) = pcoord((localCells%column(celllo+in))*3+1:(localCells%column(celllo+in))*3+3)
+            end do
+            cellMat = 0.0_8
+            do ip = 1, num_intpoint
+                Jacobi = matmul(elem_lib(elem_id)%dNIdLimr(:,:,ip),elem_coord(1:num_node,:)) !
+                invJacobi = directInverse3x3(Jacobi)
+                dNjdxi_ij(:,1:num_node) = matmul(invJacobi,elem_lib(elem_id)%dNIdLimr(:,:,ip))
+                k__mul__dNjdxi_ij(:,1:num_node) = matmul(k_ther, dNjdxi_ij)
+                cellMat = cellMat + matmul(transpose(dNjdxi_ij(:,1:num_node)), k__mul__dNjdxi_ij(:,1:num_node))
+            end do
+
+            touchedMat = .false.
+            do in = 1, num_node
+                if(.not. isnan(pfix(localCells%column(celllo+in)+1))) then
+                    nodeFix = pfix(localCells%column(celllo+in)+1)
+                    nodeDiag = cellMat(in,in)
+                    cellVec = -cellMat(:,in)
+                    do in2 = 1, num_node
+                        if(.not. isnan(pfix(localCells%column(celllo+in2)+1))) then
+                            cellVec(in2) = 0.0_8 ! do not add rhs for other fixed dofs
+                        endif
+                    enddo
+                    cellVec(in) = nodeDiag
+                    cellVec = cellVec * nodeFix
+                    call VecSetValues(Pther,num_node,cellDOFs,cellVec,ADD_VALUES,ierr)
+                    cellMat(in,:) = 0.0_8
+                    cellMat(:,in) = 0.0_8
+                    cellMat(in,in) = nodeDiag
+                    touchedMat = .true.
+                endif
+            enddo
+
+            ! if(touchedMat) then
+            !     print*, "CELL",i
+            !     do in2 = 1, num_node
+            !         print*, cellMat(in2,:)
+            !     enddo
+            ! endif
+            cellMat = 1
+            if(rank == 0) then
+                !print*,'CELLDOFS',cellDOFs
+            endif
+
+                !!!
+            call MatSetValues(Ather, num_node*1, cellDOFs, num_node*1, cellDOFs, cellMat, ADD_VALUES, ierr)
+            !print*,i
+            !print*,cellMat
+            deallocate(cellDOFs)
+            deallocate(cellMat)
+            deallocate(cellVec)
+        enddo
+        
+
+        !!!TODO: face integral for type 2 or 3 bc
+        if(rank == 0)then
+            do ibc = 1, NBSETS
+                do i = 1, size(bcread(ibc)%ELEM_ID)
+
+                enddo
+            enddo
+        endif
+
+        call MatAssemblyBegin(Ather, MAT_FINAL_ASSEMBLY, ierr)
+        call MatAssemblyEnd(Ather, MAT_FINAL_ASSEMBLY, ierr)
+        call VecAssemblyBegin(Pther, ierr)
+        call VecAssemblyEnd(Pther,ierr)
+        call VecRestoreArrayReadF90(dofFixTher, pfix, ierr)
+        call VecRestoreArrayReadF90(localCoords,    pcoord, ierr)
+        CHKERRA(ierr)
+    end subroutine
+
+    
+
 
     !after readgrid initializeLib
     subroutine SetUpElasticity
@@ -1847,6 +2041,26 @@ contains
         ! call VecScatterEnd(procToZeroScatter,veczero,vecdist2,INSERT_VALUES,SCATTER_REVERSE,ierr)
         ! call VecAXPY(vecdist2,-1.0_8,vecdist,ierr)
         ! call VecView(vecdist2, PETSC_VIEWER_STDOUT_WORLD, ierr)
+    end subroutine
+
+    ! when reverse, zero->dist, else dist->zero
+    subroutine GatherVec3(vecdist, veczero, ifreverse)
+        Vec vecdist
+        Vec veczero
+        PetscInt ierr
+        logical ifreverse
+        if(.not. (if_procToZeroScatter3x_alive)) then
+            call VecScatterCreate(vecdist, partitionedNumberingIndex3x, veczero,PETSC_NULL_IS,&
+                                  procToZeroScatter3x, ierr)
+            if_procToZeroScatter3x_alive = .true.
+        endif
+        if(ifreverse) then
+            call VecScatterBegin(procToZeroScatter3x,veczero,vecdist,INSERT_VALUES,SCATTER_REVERSE,ierr)
+            call VecScatterEnd(procToZeroScatter3x,veczero,vecdist,INSERT_VALUES,SCATTER_REVERSE,ierr)
+        else
+            call VecScatterBegin(procToZeroScatter,vecdist,veczero,INSERT_VALUES,SCATTER_FORWARD,ierr)
+            call VecScatterEnd(procToZeroScatter3x,vecdist,veczero,INSERT_VALUES,SCATTER_FORWARD,ierr)
+        endif
     end subroutine
 
     subroutine output_plt_thermal(path, title)

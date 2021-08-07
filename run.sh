@@ -1,7 +1,7 @@
 #!/bin/bash
 
 numProc=2
-addOpt=
+additional=
 if [ $# -gt 0 ]
 then
     numProc=$1
@@ -12,4 +12,7 @@ then
 fi
 #echo npis${numProc}
 #echo optis$@
-mpirun -np ${numProc} --oversubscribe ./main.exe $@ -ksp_monitor
+
+#additional="-start_in_debugger ${additional}"
+
+mpirun -np ${numProc} --oversubscribe ./main.exe $@ -ksp_monitor ${additional}
