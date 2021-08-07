@@ -1,10 +1,12 @@
 #include <petsc/finclude/petscsys.h>
 #include <petsc/finclude/petscdmplex.h>
+#include <petsc/finclude/petscvec.h>
 !#include <petsc/finclude/petscsection.h>
 
 program test
     use petscsys
     use petscdmplex
+    use petscvec
     !use petscsection
     implicit none
     DM dm
@@ -14,6 +16,12 @@ program test
     PetscInt p0, pe, f0, fe, v0, ve
     PetscSection s
     integer i
+    
+    !!ghost vec test
+    Vec Gvec
+    PetscInt lo,hi
+    PetscScalar val
+    PetscScalar, pointer :: parray(:)
 
 !!!!!!!!!!
     call PetscInitialize(PETSC_NULL_CHARACTER,ierr)
@@ -42,7 +50,7 @@ program test
     !     call DMPlexSetCone(dm, 7, (/1,3,2/), ierr) !
 
     !     call DMPlexSymmetrize(dm, ierr)
-    !     call DMPlexStratify(dm, ierr); 
+    !     call DMPlexStratify(dm, ierr);
     !     CHKERRA(ierr)
     ! else
     !     call DMPlexSetChart(dm, 8, 8, ierr)
@@ -50,7 +58,7 @@ program test
     !     call DMSetUp(dm,ierr)
 
     !     call DMPlexSymmetrize(dm, ierr)
-    !     call DMPlexStratify(dm, ierr); 
+    !     call DMPlexStratify(dm, ierr);
     !     CHKERRA(ierr)
     ! endif
 
@@ -68,6 +76,31 @@ program test
 
     print*,'rank', mpirank,f0,fe
     CHKERRA(ierr)
+
+    
+    if(mpirank == 0) then
+        call VecCreateGhost(MPI_COMM_WORLD,5,PETSC_DECIDE,2,(/4,5/),Gvec, ierr)
+        
+    else
+        call VecCreateGhost(MPI_COMM_WORLD,5,PETSC_DECIDE,2,(/1,0/),Gvec, ierr)
+    endif
+
+    call VecGetOwnershipRange(Gvec,lo, hi, ierr)
+    do i = lo,hi-1
+        val = i
+        call VecSetValue(Gvec,i,val,INSERT_VALUES, ierr)
+    enddo
+    call VecAssemblyBegin(Gvec,ierr)
+    call VecAssemblyEnd  (Gvec,ierr)
+    call VecView(Gvec,PETSC_VIEWER_STDOUT_WORLD,ierr)
+
+    call VecGhostUpdateBegin(Gvec,INSERT_VALUES,SCATTER_FORWARD, ierr);
+    call VecGhostUpdateEnd  (Gvec,INSERT_VALUES,SCATTER_FORWARD, ierr);
+    call VecGetArrayReadF90    (Gvec, parray ,ierr)
+    print*, 'rank=',mpirank
+    print*, parray(1:8)
+    call VecRestoreArrayReadF90(Gvec, parray, ierr)
+
 
     call PetscFinalize(ierr); 
     CHKERRA(ierr)

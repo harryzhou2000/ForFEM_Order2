@@ -1,5 +1,5 @@
 
-OptFlag=-g
+OptFlag=-g -O0
 PetscPath=${PETSC}include
 PetscBuildPath=${PETSC}arch_WSL_Build_A/include
 Include=-I"${PetscPath}" -I"${PetscBuildPath}"

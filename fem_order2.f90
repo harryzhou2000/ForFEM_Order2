@@ -24,6 +24,8 @@ module fem_order2
     !use mpi
 
     implicit none
+
+    !!!! partition data
     MatPartitioning partition
     Mat adjmat
     type(tIS) partitionIndex, rowsTwoSidedIndex, &
@@ -35,39 +37,58 @@ module fem_order2
 
     PetscInt :: localDOFs ! corresponding to rowsTwoSidedIndex, one dim per point
     PetscInt :: globalDOFs
+    PetscInt indexLo ! just partitioned index range for local vectors
+    PetscInt indexHi
 
+    PetscInt, allocatable :: cellPartition(:)      !ncell
+    PetscInt, allocatable :: cellLocalNumbering(:) !ncell
+    PetscInt nghost
+    PetscInt, allocatable :: ghostingGlobal(:)     ! ghosting is based on local cells
+    PetscInt, allocatable :: ghostingGlobal3x(:)   ! ghosting is based on local cells
+
+    Vec localCoords ! ghosting is based on local cells
+    type(csr) localCells
+    PetscInt  nLocalCells
+
+
+    !!!! solution data
     KSP  :: KSPelas
-    type(tMat) :: Aelas !stiffness for elasticity
-    type(tVec) :: Pelas !load Vector for elasticity
-    type(tVec) :: Uelas !solution Vector for elasticity
+    Mat :: Aelas !stiffness for elasticity
+    Vec :: Pelas !load Vector for elasticity
+    Vec :: Uelas !solution Vector for elasticity
     !real(8), allocatable :: gatheredUelas(:)
-    real(8), allocatable :: dofFixElas(:)
-    real(8), allocatable :: bcValueElas(:)
-    integer(4), allocatable :: bcTypeElas(:)
+    PetscScalar, allocatable :: dofFixElas(:)
+    PetscScalar, allocatable :: bcValueElas(:)
+    PetscInt, allocatable :: bcTypeElas(:)
+    PetscInt, allocatable :: localBcTypeElas(:)
+    PetscScalar, allocatable :: localBcValueElas(:)
 
     KSP  :: KSPther
-    type(tMat) :: Ather !stiffness for thermal
-    type(tVec) :: Pther !load Vector for thermal
-    type(tVec) :: Uther !solution Vector for elasticity
+    Mat :: Ather !stiffness for thermal
+    Vec :: Pther !load Vector for thermal
+    Vec :: Uther !solution Vector for elasticity
     !real(8), allocatable :: gatheredUther(:)
-    real(8), allocatable :: dofFixTher(:)
-    real(8), allocatable :: bcValueTher(:)
-    integer(4), allocatable :: bcTypeTher(:)
+    PetscScalar, allocatable :: dofFixTher(:)
+    PetscScalar, allocatable :: bcValueTher(:)
+    PetscInt, allocatable :: bcTypeTher(:)
+    PetscInt, allocatable :: localBcTypeTher(:)
+    PetscScalar, allocatable :: localBcValueTher(:)
 
-    !!scatterers
+    !!!! scatterers
     VecScatter procToZeroScatter
     VecScatter procToZeroScatter3x
     logical if_procToZeroScatter_alive, if_procToZeroScatter3x_alive
 
+    !!!! aux data
     !topology of mesh nodes, should be parallized or upgraded to PETSC's dmplex
     !serial for proc0
     type(csr), target :: AdjacencyCounter
     !node->nodes counter uncompressed
     !serial for proc0
     integer, allocatable :: AdjacencyNum0(:)
+    !parallel
     PetscInt, allocatable :: localAdjacencyNum(:)
-    PetscInt, allocatable :: ghostAdjacencyNum(:)
-
+    PetscInt, allocatable :: ghostAdjacencyNum(:) !this is the ghosting in matrices
     integer, allocatable :: Ather_r_pos
 
     !!! constitutional:
@@ -85,6 +106,10 @@ module fem_order2
         integer(kind=4), allocatable :: face_size(:)! FS
         integer(kind=4), allocatable :: face_node(:,:) ! F*max(FS)
     end type
+
+    type petscInt_vardimWrapper
+        PetscInt, allocatable :: N(:)
+    endtype
 
     integer, parameter:: nlib = 3, nlib_face = 2
     type(fem_element) elem_lib(nlib)
@@ -627,7 +652,7 @@ contains
             allocate(hasRefrence(nverts),source=.false.)
             allocate(newPointInd(nverts),source=-1)
             do i = 1,ncells
-                elem_id = getElemID(CELL(i)%N)
+                elem_id = getElemID(size(CELL(i)%N))
                 !num_intpoint = elem_lib(elem_id)%num_intpoint
                 num_node = elem_lib(elem_id)%num_node
                 do j = 1,num_node
@@ -645,7 +670,7 @@ contains
             allocate(newCoords(3,newInd))
             !wash the node indices of cells
             do i = 1, ncells
-                elem_id = getElemID(CELL(i)%N)
+                elem_id = getElemID(size(CELL(i)%N))
                 !num_intpoint = elem_lib(elem_id)%num_intpoint
                 num_node = elem_lib(elem_id)%num_node
                 do j = 1,num_node
@@ -679,7 +704,7 @@ contains
 
         allocate(cell_volumes(size(CELL)))
         do i = 1, size(CELL)
-            elem_id = getElemID(CELL(i)%N)
+            elem_id = getElemID(size(CELL(i)%N))
             cell_volumes(i) = 0.0_8
             num_intpoint = elem_lib(elem_id)%num_intpoint
             num_node = elem_lib(elem_id)%num_node
@@ -700,9 +725,9 @@ contains
 
     ! gadget
     function getElemID(CELLI) result(ID)
-        integer, allocatable, intent(in) :: CELLI(:)
+        integer, intent(in) :: CELLI
         integer :: ID
-        select case(size(CELLI))
+        select case((CELLI))
         case(15)
             ID = 1
         case(20)
@@ -710,7 +735,7 @@ contains
         case(10)
             ID = 3
         case default
-            print *, "Error::getElemID::Current Num Node ",size(CELLI)
+            print *, "Error::getElemID::Current Num Node ",(CELLI)
             print *, "Not supported"
             stop
         end select
@@ -718,15 +743,15 @@ contains
 
     ! gadget
     function getElemIDFace(FACEI) result(ID)
-        integer, allocatable, intent(in) :: FACEI(:)
+        integer, intent(in) :: FACEI
         integer :: ID
-        select case(size(FACEI))
+        select case((FACEI))
         case(8)
             ID = 1
         case(6)
             ID = 2
         case default
-            print *, "Error::getFACEID::Current Num Node ",size(FACEI)
+            print *, "Error::getFACEID::Current Num Node ",(FACEI)
             print *, "Not supported"
             stop
         end select
@@ -1039,11 +1064,11 @@ contains
         integer ncells, nverts,  elem_id, num_intpoint, num_node, current_row_start, current_ivert,&
             next_row_start, new_row_end, current_row_start_old, next_row_start_old
         integer rank, siz, ierr
-        integer i,j
+        integer i,j,ir
         integer fillBuffer(27)
         integer, pointer:: tobesorted(:)
         integer, allocatable:: oldCols(:), oldRows(:)
-        PetscInt, pointer :: parray(:)
+        PetscInt, pointer :: parray(:), parray2(:)
         Mat m2, m3
         Vec v1,v2
         PetscInt msizem, msizen
@@ -1064,9 +1089,9 @@ contains
         call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
         call MPI_COMM_SIZE(MPI_COMM_WORLD,siz,ierr)
 
-        ncells = size(CELL)
-        nverts = size(COORD,dim=2)
         if(rank==0) then
+            ncells = size(CELL)
+            nverts = size(COORD,dim=2)
             globalDOFs = nverts
         endif
         call MPI_Bcast(globalDOFs,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
@@ -1078,7 +1103,7 @@ contains
             endif
             allocate(AdjacencyNum0(nverts),source = 0)
             do i = 1,ncells
-                elem_id = getElemID(CELL(i)%N)
+                elem_id = getElemID(size(CELL(i)%N))
                 !num_intpoint = elem_lib(elem_id)%num_intpoint
                 num_node = elem_lib(elem_id)%num_node
                 do j = 1,num_node
@@ -1096,7 +1121,7 @@ contains
 
             AdjacencyNum0 = 0
             do i = 1,ncells
-                elem_id = getElemID(CELL(i)%N)
+                elem_id = getElemID(size(CELL(i)%N))
                 !num_intpoint = elem_lib(elem_id)%num_intpoint
                 num_node = elem_lib(elem_id)%num_node
                 do j = 1,num_node
@@ -1182,22 +1207,23 @@ contains
         call ISPartitioningToNumbering(partitionIndex, partitionedNumberingIndex, ierr)
 
         !!! get Numbering Extended
-        call IsGetIndicesF90(partitionedNumberingIndex, parray, ierr)
+        call IsGetIndicesF90(partitionedNumberingIndex, parray2, ierr)
         if(rank == 0)then
             allocate(numberingExtendedVal(globalDOFs * 3))
             do i = 1, globalDOFs
-                numberingExtendedVal((i-1) * 3 + 1) = parray(i) * 3 + 0
-                numberingExtendedVal((i-1) * 3 + 2) = parray(i) * 3 + 1
-                numberingExtendedVal((i-1) * 3 + 3) = parray(i) * 3 + 2
+                numberingExtendedVal((i-1) * 3 + 1) = parray2(i) * 3 + 0
+                numberingExtendedVal((i-1) * 3 + 2) = parray2(i) * 3 + 1
+                numberingExtendedVal((i-1) * 3 + 3) = parray2(i) * 3 + 2
             enddo
             call ISCreateGeneral(MPI_COMM_WORLD,globalDOFs*3,numberingExtendedVal,&
                                  PETSC_COPY_VALUES,partitionedNumberingIndex3x, ierr)
         else
-            allocate(numberingExtendedVal(0))
-            call ISCreateGeneral(MPI_COMM_WORLD,0,numberingExtendedVal,&
+            allocate(numberingExtendedVal(1))
+            call ISCreateGeneral(MPI_COMM_WORLD,0,           numberingExtendedVal,&
                                  PETSC_COPY_VALUES,partitionedNumberingIndex3x, ierr)
         endif
         deallocate(numberingExtendedVal)
+        call IsRestoreIndicesF90(partitionedNumberingIndex, parray2, ierr)
 
         !!! get Inumbering
         call ISCreate(MPI_COMM_WORLD,partitionedNumberingIndexInversed, ierr)
@@ -1207,17 +1233,21 @@ contains
         !!! call ISSetBlockSize(partitionedNumberingIndex,123, ierr)
 
         !!!!CHECK
-        !call IsView(partitionedNumberingIndex, PETSC_VIEWER_STDOUT_WORLD, ierr)
+        ! call IsView(partitionedNumberingIndex3x, PETSC_VIEWER_STDOUT_WORLD, ierr)
         ! call MatCreateSubMatrix(adjMat,rowsTwoSidedIndex,rowsTwoSidedIndex,MAT_INITIAL_MATRIX,m2,ierr)
         ! !call MatPermute(adjMat,rowsTwoSidedIndex,rowsTwoSidedIndex,m3, ierr)
         ! !call MatView(m2, PETSC_VIEWER_STDOUT_WORLD, ierr)
         ! call MatGetLocalSize(m2, msizem, msizen, ierr)
         ! print*, rank, "m=", msizem, "n=", msizen
-        call IsGetIndicesF90(partitionIndex, parray, ierr) ! Fortran90 call does not need restoring
-        point_partition = parray
+        call IsGetIndicesF90(partitionIndex, parray, ierr)
         if(rank ==0 ) then
+            allocate(point_partition(globalDOFs))
+            do i = 1,globalDOFs
+                point_partition(i) = parray(i)
+            enddo
             call output_plt_scalar('./out2_data1_part.plt', 'goodstart', point_partition, 'partition', .false.)
         endif
+        call IsRestoreIndicesF90(partitionIndex, parray, ierr)
         !!!!CHECK
 
         !!! max Row Size
@@ -1232,7 +1262,7 @@ contains
         adjMaxWidth = maxWidth !!!!!!!!
         !print*,rank, "MW=",maxWidth
 
-        ! !!! create a mat for testing
+        !!! create a mat for testing
         ! call MatCreate(MPI_COMM_WORLD, m3, ierr)
         ! call MatSetType(m3,MATMPIAIJ,ierr)
         ! call MatSetSizes(m3, localDOFs*3, localDOFs*3, globalDOFs*3, globalDOFs*3, ierr)
@@ -1240,7 +1270,7 @@ contains
         ! call IsGetIndicesF90(partitionedNumberingIndex, parray, ierr) !parray is now partitionedNumberingIndex
         ! if(rank == 0)then
         !     do i = 1, ncells
-        !         elem_id = getElemID(CELL(i)%N)
+        !         elem_id = getElemID(size(CELL(i)%N))
         !         !num_intpoint = elem_lib(elem_id)%num_intpoint
         !         num_node = elem_lib(elem_id)%num_node
         !         allocate(cellDOFs(num_node*3))
@@ -1264,10 +1294,8 @@ contains
         ! call VecSet(v1,1.0_8,ierr)
         ! call MatMult(m3, v1, v2, ierr)
         ! call VecView(v2,PETSC_VIEWER_STDOUT_WORLD, ierr)
-        !!!
-
-
-        !!!!!!!! distribute adjacency
+        !!
+        !!!!!!! distribute adjacency
 
         if(rank == 0)then
             allocate(tempScalarizedWidth(globalDOFs))
@@ -1286,6 +1314,7 @@ contains
         !call VecView(widthVecZero,PETSC_VIEWER_STDOUT_WORLD, ierr)
 
         call VecCreateMPI(MPI_COMM_WORLD, localDOFs, globalDOFs, widthVecDist, ierr)
+        call VecGetOwnershipRange(widthVecDist , indexLo, indexHi, ierr)
         call GatherVec1(widthVecDist, widthVecZero, .true. )
 
         call VecGetArrayReadF90(widthVecDist, pwidth, ierr)
@@ -1312,21 +1341,247 @@ contains
         endif
         call VecAssemblyBegin(widthVecZero, ierr)
         call VecAssemblyEnd(widthVecZero,ierr)
-        call VecView(widthVecZero,PETSC_VIEWER_STDOUT_WORLD, ierr)
+        !call VecView(widthVecZero,PETSC_VIEWER_STDOUT_WORLD, ierr)
         call GatherVec1(widthVecDist, widthVecZero, .true. )
         call VecGetArrayReadF90(widthVecDist, pwidth, ierr)
         if(allocated(ghostAdjacencyNum)) then
             deallocate(ghostAdjacencyNum)
         endif
         allocate(ghostAdjacencyNum(localDOFs))
+        print*,size(pwidth), localDOFs
         ghostAdjacencyNum = nint(pwidth) ! nearest int
         localAdjacencyNum = localAdjacencyNum - ghostAdjacencyNum ! save the ghosters
         call VecRestoreArrayReadF90(widthVecDist, pwidth, ierr)
         call VecDestroy(widthVecZero, ierr)
         call VecDestroy(widthVecDist, ierr)
+        call IsRestoreIndicesF90(partitionIndex, parray, ierr)
 
-        !!!!!!!! distribute adjacency
+        !!!!!!! distribute adjacency
+        call DoCellPartition
+    end subroutine
 
+    ! do not call
+    subroutine DoCellPartition
+        use globals
+        use linear_set
+        !!!!!!! cell partition and cell ghost deriving
+        PetscInt ierr
+        PetscInt ncells, nverts, i, j, ir, elem_id, num_node, current_row_start
+        integer rank, siz
+        PetscInt, pointer :: parray(:), parray2(:)
+        PetscInt, allocatable :: localCellSizes(:)
+        PetscInt, allocatable :: localGhostSizes(:)
+        type(petscInt_vardimWrapper), allocatable :: SendGhosts(:)
+        type(Csr), allocatable :: SendCells(:)
+        PetscInt ghostLocFound
+
+        integer, allocatable :: sendreqs(:)
+        integer recvreq(1)
+        integer, allocatable :: sendstatus(:)
+        integer recvstatus(1)
+
+        call MPI_COMM_SIZE(MPI_COMM_WORLD, siz, ierr)
+        call MPI_COMM_RANK(MPI_COMM_WORLD, rank, ierr)
+        call IsGetIndicesF90(partitionIndex, parray, ierr)
+        if(rank == 0) then
+            ncells = size(CELL)
+            nverts = size(COORD,dim=2)
+            if(allocated(cellPartition)) then
+                deallocate(cellPartition)
+            endif
+            allocate(cellPartition(ncells))
+            allocate(localCellSizes(siz), source = 0)
+            allocate(SendCells(siz))
+            allocate(localGhostSizes(siz), source = 0)
+            allocate(SendGhosts(siz))
+            do i = 1, ncells
+                elem_id = getElemID(size(CELL(i)%N))
+                !num_intpoint = elem_lib(elem_id)%num_intpoint
+                num_node = elem_lib(elem_id)%num_node
+                cellPartition(i) = parray(CELL(i)%N(mod(i,num_node) + 1))
+                localCellSizes(cellPartition(i) + 1) = localCellSizes(cellPartition(i) + 1) + 1
+                do j = 1, num_node
+                    if(parray(CELL(i)%N(j)) .ne. cellPartition(i))then
+                        localGhostSizes(cellPartition(i) + 1) = localGhostSizes(cellPartition(i) + 1) + 1
+                    endif
+                enddo
+            enddo
+            do ir = 0 , (siz-1)
+                call Csr_SetNROW(SendCells(ir+1), localCellSizes(ir+1))
+                call Csr_AllocateRowStart(SendCells(ir+1))
+                allocate(SendGhosts(ir+1)%N(localGhostSizes(ir+1)))
+            enddo
+            localGhostSizes = 0
+            localCellSizes = 0
+            do i = 1, ncells
+                elem_id = getElemID(size(CELL(i)%N))
+                !num_intpoint = elem_lib(elem_id)%num_intpoint
+                num_node = elem_lib(elem_id)%num_node
+                ir = cellPartition(i)
+                localCellSizes(ir + 1) = localCellSizes(ir + 1) + 1
+                SendCells(ir + 1)%rowStart(localCellSizes(ir + 1) + 1) = &
+                    SendCells(ir + 1)%rowStart(localCellSizes(ir + 1)) + num_node
+                do j = 1, num_node
+                    if(parray(CELL(i)%N(j)) .ne. cellPartition(i))then
+                        localGhostSizes(cellPartition(i) + 1) = localGhostSizes(cellPartition(i) + 1) + 1
+                        SendGhosts(cellPartition(i) + 1)%N(localGhostSizes(cellPartition(i) + 1)) = &
+                            CELL(i)%N(j)
+                    endif
+                enddo
+            enddo
+            do ir = 0 , (siz-1)
+                call Csr_SetNNZ(SendCells(ir+1), SendCells(ir+1)%rowStart(SendCells(ir+1)%nrow + 1))
+                call Csr_AllocateColumn(SendCells(ir+1))
+                call int_mergeSort(SendGhosts(ir+1)%N, 1, localGhostSizes(ir+1) + 1)
+                call int_reduceSorted(SendGhosts(ir+1)%N, 1, size(SendGhosts(ir+1)%N)+1,&
+                                      localGhostSizes(ir+1))
+            enddo
+        endif
+        call IsGetIndicesF90(partitionedNumberingIndex, parray2, ierr)
+        if(rank == 0) then
+            localCellSizes = 0
+            do i = 1, ncells
+                elem_id = getElemID(size(CELL(i)%N))
+                !num_intpoint = elem_lib(elem_id)%num_intpoint
+                num_node = elem_lib(elem_id)%num_node
+                ir = cellPartition(i)
+                localCellSizes(ir + 1) = localCellSizes(ir + 1) + 1
+                current_row_start = SendCells(ir+1)%rowStart(localCellSizes(ir + 1))
+                !next_row_start    = SendCells(ir+1)%rowStart(localCellSizes(ir + 1) + 1)
+                do j = 1, num_node
+                    if(parray(CELL(i)%N(j)) .ne. cellPartition(i))then
+                        if(int_searchBinary(SendGhosts(ir+1)%N, 1, localGhostSizes(ir+1)+1, &
+                                            CELL(i)%N(j), ghostLocFound)) then
+                            SendCells(ir+1)%column(current_row_start + j) = -ghostLocFound !!! use minus to distinguish from global sets
+                        else
+                            print*, 'ghost search failed'
+                            stop
+                        endif
+                    else
+                        SendCells(ir+1)%column(current_row_start + j) = &
+                            parray2(CELL(i)%N(j))
+                    endif
+                enddo
+            enddo
+            do ir = 0 , (siz-1)
+                !print*,ir,":",SendGhosts(ir+1)%N
+                do i = 1, (localGhostSizes(ir+1) - 1) ! localGhostSizes is now 1 larger than top
+                    SendGhosts(ir+1)%N(i) = parray2(SendGhosts(ir+1)%N(i))
+                enddo
+            enddo
+            !print*,'rank', rank, 'HERE'
+        endif
+        ! send nrow
+        if(rank == 0) then
+            allocate(sendreqs(siz))
+            do ir = 0, (siz - 1)
+                call MPI_Isend(SendCells(ir+1)%nrow, 1, MPI_INTEGER, ir, 1231, &
+                               MPI_COMM_WORLD, sendreqs(ir+1), ierr)
+            enddo
+        endif
+        call MPI_Irecv(localCells%nrow, 1, MPI_INTEGER, MPI_ANY_SOURCE, 1231, &
+                       MPI_COMM_WORLD, recvreq(1), ierr)
+        if(rank == 0) then
+            allocate(sendstatus(siz))
+            call MPI_Waitall(siz, sendreqs, MPI_STATUSES_IGNORE, ierr)
+        endif
+        call MPI_Wait(recvreq(1), MPI_STATUS_IGNORE, ierr) ! TODO : add status
+        call Csr_AllocateRowStart(localCells)
+        ! send rowStarts
+        if(rank == 0) then
+            do ir = 0, (siz - 1)
+                call MPI_Isend(SendCells(ir+1)%rowStart, SendCells(ir+1)%nrow+1, MPI_INTEGER, ir, 1232, &
+                               MPI_COMM_WORLD, sendreqs(ir+1), ierr)
+            enddo
+        endif
+        call MPI_Irecv(localCells%rowStart, localCells%nrow+1, MPI_INTEGER, MPI_ANY_SOURCE, 1232, &
+                       MPI_COMM_WORLD, recvreq(1), ierr)
+        if(rank == 0) then
+            call MPI_Waitall(siz, sendreqs, MPI_STATUSES_IGNORE, ierr)
+        endif
+        call MPI_Wait(recvreq(1), MPI_STATUS_IGNORE, ierr) ! TODO : add status
+        ! send nnz
+        if(rank == 0) then
+            do ir = 0, (siz - 1)
+                call MPI_Isend(SendCells(ir+1)%nnz, 1, MPI_INTEGER, ir, 1233, &
+                               MPI_COMM_WORLD, sendreqs(ir+1), ierr)
+            enddo
+        endif
+        call MPI_Irecv(localCells%nnz, 1, MPI_INTEGER, MPI_ANY_SOURCE, 1233, &
+                       MPI_COMM_WORLD, recvreq(1), ierr)
+        if(rank == 0) then
+            call MPI_Waitall(siz, sendreqs, MPI_STATUSES_IGNORE, ierr)
+        endif
+        call MPI_Wait(recvreq(1), MPI_STATUS_IGNORE, ierr) ! TODO : add status
+        call Csr_AllocateColumn(localCells)
+        ! send cols
+        if(rank == 0) then
+            do ir = 0, (siz - 1)
+                call MPI_Isend(SendCells(ir+1)%column, SendCells(ir+1)%nnz, MPI_INTEGER, ir, 1234, &
+                               MPI_COMM_WORLD, sendreqs(ir+1), ierr)
+            enddo
+        endif
+        call MPI_Irecv(localCells%column, localCells%nnz, MPI_INTEGER, MPI_ANY_SOURCE, 1234, &
+                       MPI_COMM_WORLD, recvreq(1), ierr)
+        if(rank == 0) then
+            call MPI_Waitall(siz, sendreqs, MPI_STATUSES_IGNORE, ierr)
+        endif
+        call MPI_Wait(recvreq(1), MPI_STATUS_IGNORE, ierr) ! TODO : add status
+        ! send nghosts
+        if(rank == 0) then
+            do ir = 0, (siz - 1)
+                call MPI_Isend(localGhostSizes(ir+1), 1, MPI_INTEGER, ir, 1235, &
+                               MPI_COMM_WORLD, sendreqs(ir+1), ierr)
+            enddo
+        endif
+        call MPI_Irecv(nghost, 1, MPI_INTEGER, MPI_ANY_SOURCE, 1235, &
+                       MPI_COMM_WORLD, recvreq(1), ierr)
+        if(rank == 0) then
+            call MPI_Waitall(siz, sendreqs, MPI_STATUSES_IGNORE, ierr)
+        endif
+        call MPI_Wait(recvreq(1), MPI_STATUS_IGNORE, ierr) ! TODO : add status
+        nghost = nghost - 1 ! mark that the localGhostSizes has never been corrcected after reducing
+        print*,'ng',nghost
+        ! send ghosts
+        allocate(ghostingGlobal(nghost))
+        if(rank == 0) then
+            do ir = 0, (siz - 1)
+                call MPI_Isend(SendGhosts(ir+1)%N, localGhostSizes(ir+1) - 1, MPI_INTEGER, ir, 1236, &
+                               MPI_COMM_WORLD, sendreqs(ir+1), ierr)
+            enddo
+        endif
+        call MPI_Irecv(ghostingGlobal, nghost, MPI_INTEGER, MPI_ANY_SOURCE, 1236, &
+                       MPI_COMM_WORLD, recvreq(1), ierr)
+        if(rank == 0) then
+            call MPI_Waitall(siz, sendreqs, MPI_STATUSES_IGNORE, ierr)
+        endif
+        call MPI_Wait(recvreq(1), MPI_STATUS_IGNORE, ierr) ! TODO : add status
+        if(rank == 0) then
+            print*,localCells%column
+        endif
+
+
+        do i = 1, localCells%nnz
+            if (localCells%column(i) > 0 )then
+
+            endif
+        enddo
+
+        if(rank == 0) then
+            deallocate(localCellSizes)
+            deallocate(localGhostSizes)
+            do i = 1, siz
+                deallocate(SendGhosts(i)%N)
+                call Csr_DeleteMat(SendCells(i))
+            enddo
+            deallocate(SendCells)
+            deallocate(SendGhosts)
+            deallocate(sendreqs)
+            deallocate(sendstatus)
+        endif
+
+        call IsRestoreIndicesF90(partitionIndex, parray, ierr)
+        call IsRestoreIndicesF90(partitionedNumberingIndex, parray2, ierr)
     end subroutine
 
     !after readgrid initializeLib
@@ -1342,26 +1597,27 @@ contains
         maxWidth = adjMaxWidth
         call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
         call MPI_COMM_SIZE(MPI_COMM_WORLD,siz,ierr)
-        ncells = size(CELL)
-        nverts = size(COORD,dim=2)
 
-        !!! mark set dofs
-        if(allocated(dofFixTher)) then
-            deallocate(dofFixTher)
-        endif
-        allocate(dofFixTher(nverts))
-        minus1 = -1
-        dofFixTher = sqrt(minus1)
         if(rank==0) then
+            ncells = size(CELL)
+            nverts = size(COORD,dim=2)
+            print*,nverts,'bcnverts'
+            !!! mark set dofs
+            if(allocated(dofFixTher)) then
+                deallocate(dofFixTher)
+            endif
+            allocate(dofFixTher(nverts))
+            minus1 = -1
+            dofFixTher = sqrt(minus1)
             do ibc = 1, NBSETS
                 if(bcTypeTher(ibc) == 0) then
-                    print*,'fixedbc', ibc, bname(ibc),bcValueTher(ibc)
+                    !print*,'fixedbc', ibc, bname(ibc),bcValueTher(ibc)
                     do i = 1, size(bcread(ibc)%ELEM_ID)
                         !print*,ibc,bcread(ibc)%ELEM_ID(i),&
                         !    bcread(ibc)%ELEM_FACE(i)
                         ie = bcread(ibc)%ELEM_ID(i)
                         ifc = bcread(ibc)%ELEM_FACE(i)
-                        elem_id = getElemID(CELL(ie)%N)
+                        elem_id = getElemID(size(CELL(ie)%N))
                         facesize = elem_lib(elem_id)%face_size(ifc)
                         faceNodes(1:facesize) = elem_lib(elem_id)%face_node(ifc, 1:facesize)
                         do j = 1,facesize
@@ -1381,7 +1637,8 @@ contains
         call MatCreate(MPI_COMM_WORLD, Ather, ierr)
         call MatSetType(Ather,MATMPIAIJ,ierr)
         call MatSetSizes(Ather, localDOFs, localDOFs, globalDOFs, globalDOFs, ierr)
-        call MatMPIAIJSetPreallocation(Ather,maxWidth*1,localAdjacencyNum,maxWidth*1,ghostAdjacencyNum, ierr)
+        print*,maxWidth
+        call MatMPIAIJSetPreallocation(Ather,maxWidth*1,PETSC_NULL_INTEGER,maxWidth*1,PETSC_NULL_INTEGER, ierr)
         call MatSetOption(Ather,MAT_ROW_ORIENTED,PETSC_FALSE,ierr) !!! Fortran is column major
         call VecCreateMPI(MPI_COMM_WORLD, localDOFs*1, globalDOFs*1, Pther, ierr)
         call VecCreateMPI(MPI_COMM_WORLD, localDOFs*1, globalDOFs*1, Uther, ierr)
@@ -1422,7 +1679,7 @@ contains
 
         if(rank == 0)then
             do i = 1, ncells
-                elem_id = getElemID(CELL(i)%N)
+                elem_id = getElemID(size(CELL(i)%N))
                 num_intpoint = elem_lib(elem_id)%num_intpoint
                 num_node = elem_lib(elem_id)%num_node
                 allocate(cellDOFs(num_node*1))
@@ -1558,7 +1815,7 @@ contains
     subroutine SolveThermal
         PetscInt ierr
         call KSPSolve(KSPther, Pther, Uther, ierr)
-        call VecView(Uther, PETSC_VIEWER_STDOUT_WORLD, ierr)
+        !call VecView(Uther, PETSC_VIEWER_STDOUT_WORLD, ierr)
     end subroutine
 
     subroutine SolveElasticity

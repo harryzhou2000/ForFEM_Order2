@@ -15,7 +15,6 @@ program main
     character(10) :: outtitle = "goodstart"
     real(8) :: D(3,3) = reshape((/1, 2, 3, 5 ,5, 6, 1, 8, 9/),(/3,3/))
     integer ierr, rank
-    
 
     call PetscInitialize(PETSC_NULL_CHARACTER,ierr); 
     CHKERRA(ierr)
@@ -28,13 +27,13 @@ program main
     FILEINP = "./mark2_external.neu"
     outfile = "./out2.plt"
     call initializeStatus
-    call readgfile
     call initializeLib
     call InitializeConstitution
-    call ReducePoints
-    call getVolumes
-    !serial part
+    
     if(rank == 0 )then
+        call readgfile
+        call ReducePoints
+        call getVolumes
         call output_plt_mesh(outfile, outtitle)
         call output_plt_scalar("./out2_data1.plt", "goodstart",cell_volumes,"cell_volume", .true.)
 
@@ -48,17 +47,19 @@ program main
         ! print*,D
         ! print*, matmul(directInverse3x3(D),D)
     endif
-    
+
     call SetUpPartition
-    allocate(bcValueTher(NBSETS))
-    allocate(bcTypeTher(NBSETS))
-    bcValueTher = 0.0_8
-    bcTypeTher = 1
-    bcTypeTher(1) = 0
-    bcTypeTher(3) = 0
-    bcTypeTher(4) = 0
-    bcTypeTher(6) = 0
-    bcValueTher(6) = 1.0_8
+    if(rank == 0) then
+        allocate(bcValueTher(NBSETS))
+        allocate(bcTypeTher(NBSETS))
+        bcValueTher = 0.0_8
+        bcTypeTher = 1
+        bcTypeTher(1) = 0
+        bcTypeTher(3) = 0
+        bcTypeTher(4) = 0
+        bcTypeTher(6) = 0
+        bcValueTher(6) = 1.0_8
+    endif
     call SetUpThermalBC_BLOCKED
     call SetUpThermal_InitializeObjects
     call SetUpThermal
@@ -66,11 +67,11 @@ program main
     call SolveThermal
     call output_plt_thermal("./out2_ther.plt", "goodstart")
 
-
     if(rank == 0) then
         print *, 'The total is ', result , ' cis ', c
     endif
 
+    print*,rank,'done'
     call PetscFinalize(ierr); 
     CHKERRA(ierr)
 end program

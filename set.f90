@@ -50,7 +50,7 @@ contains
 
     subroutine int_mergeSort(Seq,lo,hi)
         int:: Seq(:)
-        int lo, hi
+        int,intent(in) ::  lo, hi
         int,pointer :: Useq(:)
         if(.not. lo < hi) then
             return
@@ -62,13 +62,14 @@ contains
 
     recursive subroutine int_mergeSort_Rec(Seq, lo, hi, Useq) ![lo,hi)
         int :: Seq(:)
-        int lo, hi, mid
+        int,intent(in) ::  lo, hi
+        int mid
         int :: Useq(:)
 
         if(.not. lo < hi - 1) then
             return
         endif
-        mid = (lo + hi)/2
+        mid = lo + (hi - lo) / 2
         call int_mergeSort_Rec(Seq, lo, mid, Useq)
         call int_mergeSort_Rec(Seq, mid, hi, Useq)
         call int_merge_inplace(Seq, lo,mid,hi,Useq)
@@ -77,7 +78,8 @@ contains
     subroutine int_merge_inplace(Seq,lo,mid,hi,Useq)
         int :: Seq(:)
         int :: Useq(:)
-        int lo, mid, hi, lop, midp, newp
+        int, intent(in) :: lo, mid, hi
+        int lop, midp, newp
         Useq(1:mid-lo) = Seq(lo:mid-1)
         lop = lo
         midp = mid
@@ -119,12 +121,11 @@ contains
 
     subroutine int_reduceSorted(Seq,lo,hi,nhi)
         int :: Seq(:)
-        int lo, hi
+        int,intent(in) :: lo, hi
         int pwrite, psee
         int nhi
         pwrite = lo + 1
         psee = lo + 1
-
         do while(psee < hi)
             if(Seq(psee-1)==Seq(psee)) then
                 psee = psee + 1
@@ -143,6 +144,29 @@ contains
             pwrite = pwrite + 1
         enddo
     end subroutine
+
+    function int_searchBinary(Seq,loin,hiin,tar,mid) result(success)
+        int :: Seq(:)
+        int, intent(in) :: loin, hiin ,tar
+        int lo,hi,mid
+        logical success
+        !!
+        lo = loin
+        hi = hiin
+        do while(lo < hi - 1)
+            mid = lo + (hi - lo) / 2
+            if(Seq(mid) > tar)then
+                hi = mid
+            else
+                lo = mid
+            endif
+        enddo
+        mid = lo
+        success = .false.
+        if(Seq(mid) == tar) then
+            success = .true.
+        endif
+    end function
 
 
     
