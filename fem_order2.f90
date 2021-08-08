@@ -46,7 +46,20 @@ module fem_order2
         PetscScalar, allocatable :: N(:)
     endtype
 
-    !!!! partition data
+    !!!! INPUT NEEDED:
+    ! proc0:
+    !   module global: CELL COORD bcread
+    !   module fem_order2: bcValueT, bcValueT2, bcTypeT (where T = elas and ther)
+    !
+
+    !!!! other inputs:
+    ! subrotine...
+
+    !!!!!!!!!!!!!!!!!!!!!!!!
+    !                      !
+    !!!! partition data !!!!
+    !                      !
+    !!!!!!!!!!!!!!!!!!!!!!!!
     MatPartitioning partition
     Mat adjmat
     type(tIS) partitionIndex, rowsTwoSidedIndex, &
@@ -61,17 +74,49 @@ module fem_order2
     PetscInt indexLo ! just partitioned index range for local vectors
     PetscInt indexHi
 
+    !!!!!!!!!!!!!!!!!!!!!!!!
+    !                      !
+    !!!! partition data !!!!
+    !                      !
+    !!!!!!!!!!!!!!!!!!!!!!!!
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !                           !
+    !!!! cell partition data !!!!
+    !                           !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     PetscInt, allocatable :: cellPartition(:)      !ncell
     PetscInt, allocatable :: cellLocalNumbering(:) !ncell
     PetscInt nghost
     PetscInt, allocatable :: ghostingGlobal(:)     ! ghosting is based on local cells
     PetscInt, allocatable :: ghostingGlobal3x(:)   ! ghosting is based on local cells
 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !                          !
+    !!!!cell partition data !!!!
+    !                          !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!
+    !                        !
+    !!!! partitioned mesh !!!!
+    !                        !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!
     Vec localCoords ! ghosting is based on local cells
     type(csr) localCells
     PetscInt  nLocalCells
+    !!!!!!!!!!!!!!!!!!!!!!!!!!
+    !                        !
+    !!!! partitioned mesh !!!!
+    !                        !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    !!!! solution data
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !                                !
+    !!!! solver and solution data !!!!
+    !                                !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     KSP  :: KSPelas
     Mat :: Aelas !stiffness for elasticity
     Vec :: Pelas !load Vector for elasticity
@@ -81,8 +126,8 @@ module fem_order2
     PetscScalar, allocatable :: bcValueElas(:)  ! nbc * 3, 0p input
     PetscScalar, allocatable :: bcValueElas2(:) ! nbc * 9, 0p input
     PetscInt, allocatable :: bcTypeElas(:)      ! nbc    , 0p input
-    PetscInt, allocatable :: bcSetSizeElas(:)   ! nbc, calculated
-    type(petscInt_vardimWrapper), allocatable :: bcDOFsElas(:) ! size is all of valued dofs
+    !PetscInt, allocatable :: bcSetSizeElas(:)   ! nbc, calculated
+    type(petscInt_vardimWrapper), allocatable :: bcDOFsElas(:) ! size is bc_related dofs
     type(petscScalar_vardimWrapper), allocatable :: bcVALsElas(:), bcVALsElas2(:)
     Vec dofFixElasDist
 
@@ -95,49 +140,88 @@ module fem_order2
     PetscScalar, allocatable :: bcValueTher(:)  ! nbc, 0p input
     PetscScalar, allocatable :: bcValueTher2(:) ! nbc, 0p input
     PetscInt, allocatable :: bcTypeTher(:)      ! nbc, 0p input
-    PetscInt, allocatable :: bcSetSizeTher(:)   ! nbc, calculated
+    !PetscInt, allocatable :: bcSetSizeTher(:)   ! nbc, calculated
     type(petscInt_vardimWrapper), allocatable :: bcDOFsTher(:)
     type(petscScalar_vardimWrapper), allocatable :: bcVALsTher(:), bcVALsTher2(:)
-
     Vec dofFixTherDist
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !                                !
+    !!!! solver and solution data !!!!
+    !                                !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    !!!! scatterers
+    !!!!!!!!!!!!!!!!!!!!
+    !                  !
+    !!!! scatterers !!!!
+    !                  !
+    !!!!!!!!!!!!!!!!!!!!
     VecScatter procToZeroScatter
     VecScatter procToZeroScatter3x
     logical if_procToZeroScatter_alive, if_procToZeroScatter3x_alive
+    !!!!!!!!!!!!!!!!!!!!
+    !                  !
+    !!!! scatterers !!!!
+    !                  !
+    !!!!!!!!!!!!!!!!!!!!
 
-    !!!! aux data
+    !!!!!!!!!!!!!!!!!!!!!!!!
+    !                      !
+    !!!! auxiliary data !!!!
+    !                      !
+    !!!!!!!!!!!!!!!!!!!!!!!!
     !topology of mesh nodes, should be parallized or upgraded to PETSC's dmplex
     !serial for proc0
     type(csr), target :: AdjacencyCounter
+    logical if_AdjacencyCounter_alive
     !node->nodes counter uncompressed
     !serial for proc0
     integer, allocatable :: AdjacencyNum0(:)
-    !seral for proc0
-    PetscInt, allocatable :: localCellSizes(:), localGhostSizes(:)
+    !serial for proc0
+    PetscInt, allocatable :: localCellSizes(:), localGhostSizes(:) ! size of comm
 
     !parallel
     PetscInt, allocatable :: localAdjacencyNum(:)
     PetscInt, allocatable :: ghostAdjacencyNum(:) !this is the ghosting in matrices
     integer, allocatable :: Ather_r_pos
 
+    !serial for proc0
+    real(8), allocatable :: cell_volumes(:)
+    !!!!!!!!!!!!!!!!!!!!!!!!
+    !                      !
+    !!!! auxiliary data !!!!
+    !                      !
+    !!!!!!!!!!!!!!!!!!!!!!!!
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!
+    !                        !
+    !!!! FEM fundamentals !!!!
+    !                        !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! constitutional:
     real(8) k_ther(3,3)
-
     integer, parameter:: nlib = 3, nlib_face = 2
     type(fem_element) elem_lib(nlib)
     type(fem_element) elem_lib_face(nlib_face)
-
-    real(8), allocatable :: cell_volumes(:)
-    real(8), allocatable :: point_partition(:)
+    integer max_numnode,max_numintpoint
+    !!!!!!!!!!!!!!!!!!!!!!!!!!
+    !                        !
+    !!!! FEM fundamentals !!!!
+    !                        !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!
 
 contains
+    ! clear procToZeroScatter*
     subroutine initializeStatus
         PetscInt ierr
         call VecScatterDestroy(procToZeroScatter, ierr)
         call VecScatterDestroy(procToZeroScatter3x, ierr)
         if_procToZeroScatter3x_alive = .false.
         if_procToZeroScatter_alive = .false.
+        call Csr_DeleteMat(AdjacencyCounter)
+        if_AdjacencyCounter_alive = .false.
+        if(allocated(cell_volumes)) then
+            deallocate(cell_volumes)
+        endif
     end subroutine
 
     subroutine initializeLib
@@ -635,15 +719,23 @@ contains
             elem_lib_face(i)%dNIdLimr(3,6,j)=0.0
         end do
 
+        max_numintpoint = 0
+        max_numnode = 0
+        do i = 1,nlib
+            max_numintpoint = max(max_numintpoint, elem_lib(i)%num_intpoint)
+            max_numnode = max(max_numnode, elem_lib(i)%num_node)
+        enddo
+        do i = 1,nlib_face
+            max_numintpoint = max(max_numintpoint, elem_lib_face(i)%num_intpoint)
+            max_numnode = max(max_numnode, elem_lib_face(i)%num_node)
+        enddo
     end subroutine
 
     subroutine InitializeConstitution
-
         k_ther = 0.0_8
         k_ther(1,1) = 1.0_8
         k_ther(2,2) = 1.0_8
         k_ther(3,3) = 1.0_8
-
     end subroutine
 
     !this is a tototally globals.mod-procedure
@@ -1061,16 +1153,8 @@ contains
         write(IOUT2) 0_4
     end subroutine
 
-! interface
-!     subroutine output_plt_mesh(path, COORD)
-!     use iso_c_binding
-!     real(kind=c_float), allocatable :: coord(:,:)
-
-!     end subroutine output_plt_mesh
-! end interface
-
-!!!!!!!!!!!!!!!!! subroutines invoking PETSC
-
+    !!!!!!!!!!!!!!!!! subroutines invoking PETSC
+    ! builds adjacencyCounter, adjacendyNum
     subroutine SetUpPartition
         use globals
         use linear_set
@@ -1090,6 +1174,7 @@ contains
         PetscInt maxWidth
         PetscScalar, allocatable::cellMat(:,:)
         PetscInt,allocatable:: cellDOFs(:)
+        real(8), allocatable :: point_partition(:)
 
         PetscInt,allocatable::numberingExtendedVal(:)
         PetscScalar, allocatable::tempScalarizedWidth(:)
@@ -1260,6 +1345,7 @@ contains
                 point_partition(i) = parray(i)
             enddo
             call output_plt_scalar('./out2_data1_part.plt', 'goodstart', point_partition, 'partition', .false.)
+            deallocate(point_partition)
         endif
         call IsRestoreIndicesF90(partitionIndex, parray, ierr)
         !!!!CHECK
@@ -1389,8 +1475,8 @@ contains
 
         integer, allocatable :: sendreqs(:)
         integer recvreq(1)
-        integer, allocatable :: sendstatus(:)
-        integer recvstatus(1)
+        !integer, allocatable :: sendstatus(:)
+        integer recvstatus(MPI_STATUS_SIZE),sendwaitindex,sendstatus(MPI_STATUS_SIZE)
 
         call MPI_COMM_SIZE(MPI_COMM_WORLD, siz, ierr)
         call MPI_COMM_RANK(MPI_COMM_WORLD, rank, ierr)
@@ -1494,10 +1580,9 @@ contains
         call MPI_Irecv(localCells%nrow, 1, MPI_INTEGER, MPI_ANY_SOURCE, 1231, &
                        MPI_COMM_WORLD, recvreq(1), ierr)
         if(rank == 0) then
-            allocate(sendstatus(siz))
             call MPI_Waitall(siz, sendreqs, MPI_STATUSES_IGNORE, ierr)
         endif
-        call MPI_Wait(recvreq(1), MPI_STATUS_IGNORE, ierr) ! TODO : add status
+        call MPI_Wait(recvreq(1), recvstatus, ierr)
         call Csr_AllocateRowStart(localCells)
         ! send rowStarts
         if(rank == 0) then
@@ -1511,7 +1596,7 @@ contains
         if(rank == 0) then
             call MPI_Waitall(siz, sendreqs, MPI_STATUSES_IGNORE, ierr)
         endif
-        call MPI_Wait(recvreq(1), MPI_STATUS_IGNORE, ierr) ! TODO : add status
+        call MPI_Wait(recvreq(1), recvstatus, ierr)
         ! send nnz
         if(rank == 0) then
             do ir = 0, (siz - 1)
@@ -1524,7 +1609,7 @@ contains
         if(rank == 0) then
             call MPI_Waitall(siz, sendreqs, MPI_STATUSES_IGNORE, ierr)
         endif
-        call MPI_Wait(recvreq(1), MPI_STATUS_IGNORE, ierr) ! TODO : add status
+        call MPI_Wait(recvreq(1), recvstatus, ierr)
         call Csr_AllocateColumn(localCells)
         ! send cols
         if(rank == 0) then
@@ -1538,7 +1623,7 @@ contains
         if(rank == 0) then
             call MPI_Waitall(siz, sendreqs, MPI_STATUSES_IGNORE, ierr)
         endif
-        call MPI_Wait(recvreq(1), MPI_STATUS_IGNORE, ierr) ! TODO : add status
+        call MPI_Wait(recvreq(1), recvstatus, ierr)
         ! send nghosts
         if(rank == 0) then
             do ir = 0, (siz - 1)
@@ -1551,7 +1636,7 @@ contains
         if(rank == 0) then
             call MPI_Waitall(siz, sendreqs, MPI_STATUSES_IGNORE, ierr)
         endif
-        call MPI_Wait(recvreq(1), MPI_STATUS_IGNORE, ierr) ! TODO : add status
+        call MPI_Wait(recvreq(1), recvstatus, ierr)
         nghost = nghost - 1 ! mark that the localGhostSizes has never been corrcected after reducing
         print*,'ng',nghost
         ! send ghosts
@@ -1567,7 +1652,7 @@ contains
         if(rank == 0) then
             call MPI_Waitall(siz, sendreqs, MPI_STATUSES_IGNORE, ierr)
         endif
-        call MPI_Wait(recvreq(1), MPI_STATUS_IGNORE, ierr) ! TODO : add status
+        call MPI_Wait(recvreq(1), recvstatus, ierr)
 
         allocate(ghostingGlobal3x(nghost*3))
         do i = 1,nghost
@@ -1611,7 +1696,6 @@ contains
             deallocate(SendCells)
             deallocate(SendGhosts)
             deallocate(sendreqs)
-            deallocate(sendstatus)
         endif
 
         call IsRestoreIndicesF90(partitionIndex,            parray,  ierr)
@@ -1779,12 +1863,14 @@ contains
         integer :: rank, siz
         PetscInt i, j, ncells, nverts, elem_id,  face_id, num_node, num_intpoint, ip, in, in2, &
             ie, ibc, ifc, facesize
-        PetscInt faceNodes(8)
-        PetscInt, allocatable::cellDOFs(:)
-        PetscScalar, allocatable::cellMat(:,:), cellVec(:), &
-            cellData(:), cellData2(:), pointData(:), pointData2(:)
-        PetscScalar :: elem_coord(27,3), Jacobi(3,3), invJacobi(3,3)  !max num node is 27 ! warning
-        PetscScalar :: dNjdxi_ij(3,27), k__mul__dNjdxi_ij(3,27)
+        PetscInt faceNodes(max_numnode)
+        PetscInt :: cellDOFs(max_numnode)
+        PetscScalar :: cellVec(max_numnode)
+        PetscScalar, allocatable::cellMat(:,:)
+        PetscScalar   cellData(max_numnode), cellData2(max_numnode), &
+            pointData(max_numintpoint), pointData2(max_numintpoint)
+        PetscScalar :: elem_coord(max_numnode,3), Jacobi(3,3), invJacobi(3,3)  !max num node is 27 ! warning
+        PetscScalar :: dNjdxi_ij(3,max_numnode), k__mul__dNjdxi_ij(3,max_numnode)
         PetscScalar  nodeFix, nodeDiag, detJacobi, dsscale
         PetscInt boundPos
         logical touchedMat
@@ -1810,9 +1896,7 @@ contains
             elem_id = getElemID(cellhi - celllo)
             num_intpoint = elem_lib(elem_id)%num_intpoint
             num_node = elem_lib(elem_id)%num_node
-            allocate(cellDOFs(num_node*1))
             allocate(cellMat(num_node*1,num_node*1))
-            allocate(cellVec(num_node*1))
             do j = 1, num_node
                 if(localCells%column(celllo+j) < localDOFs) then
                     cellDOFs(1*(j - 1) + 1) = (localCells%column(celllo + j) + indexLo) * 1 + 0
@@ -1845,7 +1929,7 @@ contains
                 if(.not. isnan(pfix(localCells%column(celllo+in)+1))) then
                     nodeFix = pfix(localCells%column(celllo+in)+1)
                     nodeDiag = cellMat(in,in)
-                    cellVec = -cellMat(:,in)
+                    cellVec(1:num_node) = -cellMat(:,in)
                     do in2 = 1, num_node
                         if(.not. isnan(pfix(localCells%column(celllo+in2)+1))) then
                             cellVec(in2) = 0.0_8 ! do not add rhs for other fixed dofs
@@ -1872,11 +1956,8 @@ contains
             call MatSetValues(Ather, num_node*1, cellDOFs, num_node*1, cellDOFs, cellMat, ADD_VALUES, ierr)
             !print*,i
             !print*,cellMat
-            deallocate(cellDOFs)
             deallocate(cellMat)
-            deallocate(cellVec)
         enddo
-        !!!TODO: face integral for type 2 or 3 bc
 
         !!!! this bc set is now only serial
         if(rank == 0)then
@@ -1891,12 +1972,6 @@ contains
                         face_id = getElemIDFace(facesize)
                         num_intpoint = elem_lib_face(face_id)%num_intpoint
                         allocate(cellMat(facesize*1,facesize*1))
-                        allocate(cellVec(facesize*1))
-                        allocate(cellDOFs(facesize*1))
-                        allocate(cellData(facesize*1))
-                        allocate(cellData2(facesize*1))
-                        allocate(pointData(num_intpoint*1))
-                        allocate(pointData2(num_intpoint*1))
                         do j = 1,facesize
                             faceNodes(j) = CELL(ie)%N(faceNodes(j))
                             elem_coord(j,:) = COORD(:,faceNodes(j))
@@ -1911,8 +1986,8 @@ contains
                                 stop
                             endif
                         enddo
-                        pointData = matmul(cellData, elem_lib_face(face_id)%NImr)
-                        pointData2 = matmul(cellData2, elem_lib_face(face_id)%NImr)
+                        pointData(1:num_intpoint) = matmul(cellData(1:facesize), elem_lib_face(face_id)%NImr)
+                        pointData2(1:num_intpoint) = matmul(cellData2(1:facesize), elem_lib_face(face_id)%NImr)
                         cellMat = 0.0_8
                         cellVec = 0.0_8
                         !print*,cellData
@@ -1927,8 +2002,9 @@ contains
                                       matmul(&
                                       elem_lib_face(face_id)%NImr(:,ip:ip),&
                                       transpose(elem_lib_face(face_id)%NImr(:,ip:ip)))
-                            cellVec = cellVec + pointData(ip)  * dsscale * elem_lib_face(face_id)%coord_intweight(ip) * &
-                                      elem_lib_face(face_id)%NImr(:,ip)
+                            cellVec(1:facesize) = cellVec(1:facesize) + &
+                                                  pointData(ip)  * dsscale * elem_lib_face(face_id)%coord_intweight(ip) * &
+                                                  elem_lib_face(face_id)%NImr(:,ip)
                         enddo
 
                         do j = 1, facesize
@@ -1942,13 +2018,7 @@ contains
                         call VecSetValues(Pther, facesize*1, cellDOFs, cellVec,ADD_VALUES,ierr)
                         call MatSetValues(Ather, facesize*1, cellDOFs, facesize*1, cellDOFs, cellMat, ADD_VALUES, ierr)
 
-                        deallocate(cellDOFs)
                         deallocate(cellMat)
-                        deallocate(cellVec)
-                        deallocate(cellData)
-                        deallocate(cellData2)
-                        deallocate(pointData)
-                        deallocate(pointData2)
                     enddo
                 endif
             enddo
@@ -2108,13 +2178,16 @@ contains
         PetscInt i, j, ncells, nverts, elem_id,  face_id, num_node, num_intpoint, ip, in, in2, &
             ie, ibc, ifc, facesize, idim
         PetscInt faceNodes(8)
-        PetscInt, allocatable::cellDOFs(:)
-        PetscScalar, allocatable::cellMat(:,:), cellVec(:), &
-            cellData(:), cellData2(:), pointData(:), pointData2(:), localFix(:),&
-            cellDataTemp(:), pointDataTemp(:)
-        PetscScalar :: elem_coord(27,3), Jacobi(3,3), invJacobi(3,3)  !max num node is 27 ! warning
-        PetscScalar :: dNjdxi_ij(3,27), b__mul__dNjdxi_ij(6,27*3), dNjdxi_ij_expand(9,27*3), &
-            b_dir2strain(6,9), unitbulkstrain(6), btd(27*3,6), NImr_expand(3,27*3)
+        PetscInt cellDOFs(max_numnode*3)
+        PetscScalar  cellVec(max_numnode*3),localFix(max_numnode*3)
+        PetscScalar, allocatable::cellMat(:,:)
+        PetscScalar cellData(max_numnode*3), cellData2(max_numnode*9), &
+            pointData(max_numintpoint*3), pointData2(max_numintpoint*9), &
+            cellDataTemp(max_numnode), pointDataTemp(max_numintpoint)
+        PetscScalar :: elem_coord(max_numnode,3), Jacobi(3,3), invJacobi(3,3)  !max num node is 27 ! warning
+        PetscScalar :: dNjdxi_ij(3,max_numnode), b__mul__dNjdxi_ij(6,max_numnode*3), &
+            dNjdxi_ij_expand(9,max_numnode*3), NImr_expand(3,max_numnode*3), &
+            b_dir2strain(6,9), unitbulkstrain(6), btd(max_numnode*3,6)
         ! the dNjdxi_ij_expand is [mat],   [mat]*[u1v1w1u2v2w2...]' = [dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz]'
         ! the b is geometry relation , b*dir = strain, dir = [dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz]'
         !                              strain = [sxx syy szz syz szx sxy]'
@@ -2165,12 +2238,7 @@ contains
             elem_id = getElemID(cellhi - celllo)
             num_intpoint = elem_lib(elem_id)%num_intpoint
             num_node = elem_lib(elem_id)%num_node
-            allocate(cellDOFs(num_node*3))
             allocate(cellMat(num_node*3,num_node*3))
-            allocate(cellVec(num_node*3))
-            allocate(cellData(num_node*1))
-            allocate(localFix(num_node*3))
-            allocate(pointData(num_node))
             do j = 1, num_node
                 if(localCells%column(celllo+j) < localDOFs) then
                     cellDOFs(3*(j-1)+1) = (localCells%column(celllo + j) + indexLo) * 3 + 0
@@ -2186,7 +2254,7 @@ contains
                 localfix(j*3-2:j*3) = pfix(localCells%column(celllo+j)*3+1 : localCells%column(celllo+j)*3+3)
             enddo
             !print*,localFix
-            pointData = matmul(cellData, elem_lib(elem_id)%NImr)
+            pointData(1:num_intpoint) = matmul(cellData(1:num_node), elem_lib(elem_id)%NImr)
             !!! Integrate the cellMat
             ! get the coords
             do in = 1, num_node
@@ -2211,10 +2279,12 @@ contains
                 b__mul__dNjdxi_ij(:,1:num_node*3) = matmul(b_dir2strain, dNjdxi_ij_expand(:,1:num_node*3))
                 call tempToENU_0(pointData(ip), E, nu) ! use temp-realted E and nu
                 btd(1:num_node*3,:) = matmul(transpose(b__mul__dNjdxi_ij(:,1:num_node*3)), constitutionMat(E,nu))
-                cellMat = cellMat + matmul(btd(1:num_node*3,:), b__mul__dNjdxi_ij(:,1:num_node*3))&
+
+                cellMat = cellMat + matmul(btd (1:num_node*3,:) , b__mul__dNjdxi_ij(:,1:num_node*3)) &
                           * elem_lib(elem_id)%coord_intweight(ip) * detJacobi
-                cellVec = cellVec + matmul(btd(1:num_node*3,:), expandRate(pointData(ip))*unitbulkstrain)&
-                          * elem_lib(elem_id)%coord_intweight(ip) * detJacobi
+                cellVec(1:num_node*3) = cellVec(1:num_node*3) + &
+                                        matmul(btd(1:num_node*3,:), expandRate(pointData(ip))*unitbulkstrain)&
+                                        * elem_lib(elem_id)%coord_intweight(ip) * detJacobi
             end do
             !print*,pointData
 
@@ -2231,7 +2301,7 @@ contains
                     nodeFix = localfix(in)
                     !print*,nodeFix,mod(in,3)
                     nodeDiag = cellMat(in,in)
-                    cellVec = -cellMat(:,in)
+                    cellVec(1:num_node*3) = -cellMat(:,in)
                     do in2 = 1, num_node*3
                         if(.not. isnan(localfix(in2))) then
                             cellVec(in2) = 0.0_8 ! do not add rhs for fixed dofs
@@ -2258,14 +2328,8 @@ contains
             call MatSetValues(AElas, num_node*3, cellDOFs, num_node*3, cellDOFs, cellMat, ADD_VALUES, ierr)
             !print*,i
             !print*,cellMat
-            deallocate(cellDOFs)
             deallocate(cellMat)
-            deallocate(cellVec)
-            deallocate(cellData)
-            deallocate(localFix)
-            deallocate(pointData)
         enddo
-        !!!TODO: face integral for type 2 or 3 bc
 
         !!!! this bc set is now only serial
         NImr_expand = 0.0_8
@@ -2281,15 +2345,6 @@ contains
                         face_id = getElemIDFace(facesize)
                         num_intpoint = elem_lib_face(face_id)%num_intpoint
                         allocate(cellMat(facesize*3,facesize*3))
-                        allocate(cellVec(facesize*3))
-                        allocate(cellDOFs(facesize*3))
-                        allocate(cellData(facesize*3))
-                        allocate(cellData2(facesize*9))
-                        allocate(pointData(num_intpoint*3))
-                        allocate(pointData2(num_intpoint*9))
-                        allocate(cellDataTemp(facesize))
-                        allocate(pointDataTemp(facesize))
-                        allocate(localFix(facesize*3))
                         do j = 1,facesize
                             faceNodes(j) = CELL(ie)%N(faceNodes(j))
                             elem_coord(j,:) = COORD(:,faceNodes(j))
@@ -2312,7 +2367,7 @@ contains
                             do j = 1,facesize
                                 cellDataTemp(j) = cellData(j*3-3+idim)
                             enddo
-                            pointDataTemp = matmul(cellDataTemp, elem_lib_face(face_id)%NImr)
+                            pointDataTemp(1:num_intpoint) = matmul(cellDataTemp(1:facesize), elem_lib_face(face_id)%NImr)
                             do j = 1,num_intpoint
                                 pointData(j*3-3+idim) = pointDataTemp(j)
                             enddo
@@ -2321,7 +2376,7 @@ contains
                             do j = 1,facesize
                                 cellDataTemp(j) = cellData2(j*9-9+idim)
                             enddo
-                            pointDataTemp = matmul(cellDataTemp, elem_lib_face(face_id)%NImr)
+                            pointDataTemp(1:num_intpoint) = matmul(cellDataTemp(1:facesize), elem_lib_face(face_id)%NImr)
                             do j = 1,num_intpoint
                                 pointData2(j*9-9+idim) = pointDataTemp(j)
                             enddo
@@ -2345,8 +2400,8 @@ contains
                                       matmul(&
                                       matmul(transpose(NImr_expand(:,1:3*facesize)),reshape(pointData2(ip*9-8:ip*9),(/3,3/))),&
                                       NImr_expand(:,1:3*facesize))
-                            cellVec = cellVec + dsscale * elem_lib_face(face_id)%coord_intweight(ip) * &
-                                      matmul(pointData(ip*3-2:ip*3), NImr_expand(:,1:3*facesize))
+                            cellVec(1:facesize*3) = cellVec(1:facesize*3) + dsscale * elem_lib_face(face_id)%coord_intweight(ip) * &
+                                                    matmul(pointData(ip*3-2:ip*3), NImr_expand(:,1:3*facesize))
                             !print*,pointData(ip*3-2:ip*3)
                         enddo
 
@@ -2359,17 +2414,7 @@ contains
                         enddo
                         call VecSetValues(Pelas, facesize*3, cellDOFs, cellVec,ADD_VALUES,ierr)
                         call MatSetValues(Aelas, facesize*3, cellDOFs, facesize*3, cellDOFs, cellMat, ADD_VALUES, ierr)
-
-                        deallocate(cellDOFs)
                         deallocate(cellMat)
-                        deallocate(cellVec)
-                        deallocate(cellData)
-                        deallocate(cellData2)
-                        deallocate(pointData)
-                        deallocate(pointData2)
-                        deallocate(cellDataTemp)
-                        deallocate(pointDataTemp)
-                        deallocate(localFix)
                     enddo
                 endif
             enddo
@@ -2540,7 +2585,20 @@ contains
         enddo
     end subroutine
 
-    !!!!!!!!!!deprecated
+    !!!!!!!!!!deprecated!!!!!!!!!!
+    !
+    !
+    !
+    !
+    !
+    !
+    !
+    !
+    !
+    !
+    !
+    !
+    !!!!!!!!!!deprecated!!!!!!!!!!
     subroutine SetUpThermal ! deprecated
         use globals
         PetscInt ierr
@@ -2642,7 +2700,6 @@ contains
         endif
         call VecRestoreArrayReadF90(dofFixTher, pfix, ierr)
 
-        !!!TODO: face integral for type 2 or 3 bc
         if(rank == 0)then
             do ibc = 1, NBSETS
                 do i = 1, size(bcread(ibc)%ELEM_ID)
@@ -2686,7 +2743,6 @@ contains
     end subroutine
 
     subroutine SetUpElasticity
-
     end subroutine
 
 end module

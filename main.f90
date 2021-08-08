@@ -96,7 +96,9 @@ program main
         bcTypeElas = 1
         ! 1
         bcTypeElas(1) = 0
-        bcValueElas(1*3-2:1*3) = 0.0_8
+        bcValueElas(1*3-2) = 0.0_8
+        bcValueElas(1*3-1) = myMinusNan()
+        bcValueElas(1*3-0) = myMinusNan()
         ! 2
         bcTypeElas(2) = 1
         bcValueElas(2*3-2:2*3) = 0.0_8
