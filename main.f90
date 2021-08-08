@@ -98,8 +98,8 @@ program main
         ! 2
         bcTypeElas(2) = 1
         bcValueElas(2*3-2:2*3) = 0.0_8
-        bcValueElas(2*3-2) = 1e-3_8
-        bcValueElas2(2*9-8:2*9) = reshape(eye3x3() * 0.5,(/9/))
+        bcValueElas(2*3-2) = 0e-3_8
+        bcValueElas2(2*9-8:2*9) = (/50.0000000000000,50.0000000000000,0.,50.0000000000000,50.0000000000000,0.,0.,0.,0./)
         ! 3 4
         bcTypeElas(3) = 1
         bcValueElas(3*3-2:3*3) = 0

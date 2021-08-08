@@ -2029,7 +2029,7 @@ contains
                         ifc = bcread(ibc)%ELEM_FACE(i)
                         elem_id = getElemID(size(CELL(ie)%N))
                         facesize = elem_lib(elem_id)%face_size(ifc)
-                        bcDofsCount = bcDofsCount + facesize*3
+                        bcDofsCount = bcDofsCount + facesize
                     enddo
                     allocate(bcDOFsElas(ibc)%N(bcDofsCount))
                     bcDofsCount = 0
@@ -2038,24 +2038,18 @@ contains
                         ifc = bcread(ibc)%ELEM_FACE(i)
                         elem_id = getElemID(size(CELL(ie)%N))
                         facesize = elem_lib(elem_id)%face_size(ifc)
-                        bcDofsCount = bcDofsCount + facesize*3
+                        bcDofsCount = bcDofsCount + facesize
                         faceNodes(1:facesize) = elem_lib(elem_id)%face_node(ifc, 1:facesize)
                         do j = 1,facesize
                             faceNodes(j) = CELL(ie)%N(faceNodes(j))
-                            bcDOFsElas(ibc)%N(bcDofsCount-facesize*3+(j-1)*3+1) = (faceNodes(j)-1)*3+1
-                            bcDOFsElas(ibc)%N(bcDofsCount-facesize*3+(j-1)*3+2) = (faceNodes(j)-1)*3+2
-                            bcDOFsElas(ibc)%N(bcDofsCount-facesize*3+(j-1)*3+3) = (faceNodes(j)-1)*3+3
+                            bcDOFsElas(ibc)%N(bcDofsCount-facesize+j) = faceNodes(j)
                         enddo
                     enddo
                     call int_mergeSort(bcDOFsElas(ibc)%N,1,bcDofsCount+1)
                     call int_reduceSorted(bcDOFsElas(ibc)%N,1,size(bcDOFsElas(ibc)%N),bcDofsCount)
-                    allocate(bcVALsElas(ibc) %N(bcDofsCount-1))
-                    allocate(bcVALsElas2(ibc)%N(3*(bcDofsCount-1))) 
-                    if(mod(bcDofsCount-1,3).ne.0)then
-                        print*,'SetUpElasticBC_BLOCKED :: bcdof reduced not by 3'
-                        stop
-                    endif
-                    do i = 1, (bcDofsCount-1)/3
+                    allocate(bcVALsElas(ibc) %N(3*bcDofsCount-1))
+                    allocate(bcVALsElas2(ibc)%N(9*(bcDofsCount-1))) !note that bcVALsElas2 is 9-sized blocking
+                    do i = 1, (bcDofsCount-1)
                         bcVALsElas(ibc)%N(i*3-2:i*3) = bcValueElas(ibc*3-2:ibc*3)
                         bcVALsElas2(ibc)%N(i*9-8:i*9) = bcValueElas2(ibc*9-8:ibc*9)
                     enddo
@@ -2116,16 +2110,19 @@ contains
         PetscInt faceNodes(8)
         PetscInt, allocatable::cellDOFs(:)
         PetscScalar, allocatable::cellMat(:,:), cellVec(:), &
-            cellData(:), cellData2(:), pointData(:), pointData2(:), localFix(:)
+            cellData(:), cellData2(:), pointData(:), pointData2(:), localFix(:),&
+            cellDataTemp(:), pointDataTemp(:)
         PetscScalar :: elem_coord(27,3), Jacobi(3,3), invJacobi(3,3)  !max num node is 27 ! warning
         PetscScalar :: dNjdxi_ij(3,27), b__mul__dNjdxi_ij(6,27*3), dNjdxi_ij_expand(9,27*3), &
-            b_dir2strain(6,9), unitbulkstrain(6), btd(27*3,6)
+            b_dir2strain(6,9), unitbulkstrain(6), btd(27*3,6), NImr_expand(3,27*3)
         ! the dNjdxi_ij_expand is [mat],   [mat]*[u1v1w1u2v2w2...]' = [dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz]'
         ! the b is geometry relation , b*dir = strain, dir = [dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz]'
         !                              strain = [sxx syy szz syz szx sxy]'
         PetscScalar  nodeFix, nodeDiag, detJacobi, dsscale, E, nu
         PetscInt boundPos
         logical touchedMat
+
+        call VecSet(Pelas,0.0_8,ierr)
 
         !!! startup
         maxWidth = adjMaxWidth
@@ -2140,9 +2137,10 @@ contains
         call VecGhostUpdateBegin(Uther,INSERT_VALUES,SCATTER_FORWARD, ierr); 
         call VecGhostUpdateEnd  (Uther,INSERT_VALUES,SCATTER_FORWARD, ierr); 
         call VecGetArrayReadF90(Uther,   pphi, ierr)
+        !   print*, pphi
 
         dNjdxi_ij_expand = 0.0_8
-        ! set geometry relation
+        ! set geometry relation, should dump to constitution
         b_dir2strain = 0.0_8
         b_dir2strain(1,1) = 1.0_8
         b_dir2strain(2,5) = 1.0_8
@@ -2158,7 +2156,6 @@ contains
         unitbulkstrain(2) = 1.0_8
         unitbulkstrain(3) = 1.0_8
 
-        call VecSet(Pther,0.0_8,ierr)
         !print*,rank,nlocalCells
 
         ! parallel A assemble
@@ -2173,6 +2170,7 @@ contains
             allocate(cellVec(num_node*3))
             allocate(cellData(num_node*1))
             allocate(localFix(num_node*3))
+            allocate(pointData(num_node))
             do j = 1, num_node
                 if(localCells%column(celllo+j) < localDOFs) then
                     cellDOFs(3*(j-1)+1) = (localCells%column(celllo + j) + indexLo) * 3 + 0
@@ -2184,7 +2182,7 @@ contains
                     cellDOFs(3*(j-1)+3) = ghostingGlobal(localCells%column(celllo + j)-localDOFs+1) * 3 + 2
                 endif
                 !local dofs are x1 y1 z1 x2 y2 z2 ...
-                cellData(j) = pphi(localCells%column(celllo+j) + 1)
+                cellData(j) = pphi(localCells%column(celllo+j) + 1) ! this is temprature phi
                 localfix(j*3-2:j*3) = pfix(localCells%column(celllo+j)*3+1 : localCells%column(celllo+j)*3+3)
             enddo
             !print*,localFix
@@ -2218,6 +2216,7 @@ contains
                 cellVec = cellVec + matmul(btd(1:num_node*3,:), expandRate(pointData(ip))*unitbulkstrain)&
                           * elem_lib(elem_id)%coord_intweight(ip) * detJacobi
             end do
+            !print*,pointData
 
             do in2 = 1, num_node*3
                 if(.not. isnan(localfix(in2))) then
@@ -2264,13 +2263,15 @@ contains
             deallocate(cellVec)
             deallocate(cellData)
             deallocate(localFix)
+            deallocate(pointData)
         enddo
         !!!TODO: face integral for type 2 or 3 bc
 
         !!!! this bc set is now only serial
+        NImr_expand = 0.0_8
         if(rank == 0)then
             do ibc = 1, NBSETS
-                if(bcTypeTher(ibc) == 1) then! linear flow condition
+                if(bcTypeElas(ibc) == 1) then! linear flow condition
                     do i = 1, size(bcread(ibc)%ELEM_ID)
                         ie = bcread(ibc)%ELEM_ID(i)
                         ifc = bcread(ibc)%ELEM_FACE(i)
@@ -2279,29 +2280,52 @@ contains
                         faceNodes(1:facesize) = elem_lib(elem_id)%face_node(ifc, 1:facesize)
                         face_id = getElemIDFace(facesize)
                         num_intpoint = elem_lib_face(face_id)%num_intpoint
-                        allocate(cellMat(facesize*1,facesize*1))
-                        allocate(cellVec(facesize*1))
-                        allocate(cellDOFs(facesize*1))
-                        allocate(cellData(facesize*1))
-                        allocate(cellData2(facesize*1))
-                        allocate(pointData(num_intpoint*1))
-                        allocate(pointData2(num_intpoint*1))
+                        allocate(cellMat(facesize*3,facesize*3))
+                        allocate(cellVec(facesize*3))
+                        allocate(cellDOFs(facesize*3))
+                        allocate(cellData(facesize*3))
+                        allocate(cellData2(facesize*9))
+                        allocate(pointData(num_intpoint*3))
+                        allocate(pointData2(num_intpoint*9))
+                        allocate(cellDataTemp(facesize))
+                        allocate(pointDataTemp(facesize))
+                        allocate(localFix(facesize*3))
                         do j = 1,facesize
                             faceNodes(j) = CELL(ie)%N(faceNodes(j))
                             elem_coord(j,:) = COORD(:,faceNodes(j))
-                            cellDOFs(j) = parray(faceNodes(j))
-                            !print*,'DEBUG',bcDOFsTher(ibc)%N
-                            if( int_searchBinary(bcDOFsTher(ibc)%N, 1, size(bcVALsTher(ibc)%N)+1, &
+                            cellDOFs(j*3-2) = parray(faceNodes(j))*3+0
+                            cellDOFs(j*3-1) = parray(faceNodes(j))*3+1
+                            cellDOFs(j*3-0) = parray(faceNodes(j))*3+2
+
+                            !print*,'DEBUG',bcDOFsElas(ibc)%N
+                            if( int_searchBinary(bcDOFsElas(ibc)%N, 1, size(bcVALsElas(ibc)%N)/3+1, &
                                                  faceNodes(j), boundPos))then
-                                cellData(j) = bcVALsTher(ibc)%N(boundPos)
-                                cellData2(j) = bcVALsTher2(ibc)%N(boundPos)
+                                cellData(j*3-2:j*3) = bcVALsElas(ibc)%N(boundPos*3-2:boundPos*3)
+                                cellData2(j*9-8:j*9) = bcVALsElas2(ibc)%N(boundPos*9-8:boundPos*9)
                             else
                                 print*,'bc search failed ', ibc, i, j
                                 stop
                             endif
+                            localFix(j*3-2:j*3) = pfix(faceNodes(j)*3-2:faceNodes(j)*3)
                         enddo
-                        pointData = matmul(cellData, elem_lib_face(face_id)%NImr)
-                        pointData2 = matmul(cellData2, elem_lib_face(face_id)%NImr)
+                        do idim = 1,3
+                            do j = 1,facesize
+                                cellDataTemp(j) = cellData(j*3-3+idim)
+                            enddo
+                            pointDataTemp = matmul(cellDataTemp, elem_lib_face(face_id)%NImr)
+                            do j = 1,num_intpoint
+                                pointData(j*3-3+idim) = pointDataTemp(j)
+                            enddo
+                        enddo
+                        do idim = 1,9
+                            do j = 1,facesize
+                                cellDataTemp(j) = cellData2(j*9-9+idim)
+                            enddo
+                            pointDataTemp = matmul(cellDataTemp, elem_lib_face(face_id)%NImr)
+                            do j = 1,num_intpoint
+                                pointData2(j*9-9+idim) = pointDataTemp(j)
+                            enddo
+                        enddo
                         cellMat = 0.0_8
                         cellVec = 0.0_8
                         !print*,cellData
@@ -2312,24 +2336,29 @@ contains
                                 print*,'surface Jacobi minus, mesh distortion'
                                 stop
                             endif
-                            cellMat = cellMat + pointData2(ip) * dsscale * elem_lib_face(face_id)%coord_intweight(ip) * &
+                            do j = 1,facesize
+                                NImr_expand(1, j*3-2) = elem_lib_face(face_id)%NImr(j,ip)
+                                NImr_expand(2, j*3-1) = elem_lib_face(face_id)%NImr(j,ip)
+                                NImr_expand(3, j*3-0) = elem_lib_face(face_id)%NImr(j,ip)
+                            enddo
+                            cellMat = cellMat + dsscale * elem_lib_face(face_id)%coord_intweight(ip) * &
                                       matmul(&
-                                      elem_lib_face(face_id)%NImr(:,ip:ip),&
-                                      transpose(elem_lib_face(face_id)%NImr(:,ip:ip)))
-                            cellVec = cellVec + pointData(ip)  * dsscale * elem_lib_face(face_id)%coord_intweight(ip) * &
-                                      elem_lib_face(face_id)%NImr(:,ip)
+                                      matmul(transpose(NImr_expand(:,1:3*facesize)),reshape(pointData2(ip*9-8:ip*9),(/3,3/))),&
+                                      NImr_expand(:,1:3*facesize))
+                            cellVec = cellVec + dsscale * elem_lib_face(face_id)%coord_intweight(ip) * &
+                                      matmul(pointData(ip*3-2:ip*3), NImr_expand(:,1:3*facesize))
+                            !print*,pointData(ip*3-2:ip*3)
                         enddo
 
-                        do j = 1, facesize
-                            if(.not. isnan(pfix0(faceNodes(j)))) then
+                        do j = 1, facesize*3
+                            if(.not. isnan(localFix(j))) then
                                 cellVec(j) = 0.0_8 ! do not add rhs for fixed dofs
                                 cellMat(j,:) = 0.0_8 ! do not add mat for fixed dofs
                                 cellMat(:,j) = 0.0_8
                             endif
-
                         enddo
-                        call VecSetValues(Pther, facesize*1, cellDOFs, cellVec,ADD_VALUES,ierr)
-                        call MatSetValues(Ather, facesize*1, cellDOFs, facesize*1, cellDOFs, cellMat, ADD_VALUES, ierr)
+                        call VecSetValues(Pelas, facesize*3, cellDOFs, cellVec,ADD_VALUES,ierr)
+                        call MatSetValues(Aelas, facesize*3, cellDOFs, facesize*3, cellDOFs, cellMat, ADD_VALUES, ierr)
 
                         deallocate(cellDOFs)
                         deallocate(cellMat)
@@ -2338,6 +2367,9 @@ contains
                         deallocate(cellData2)
                         deallocate(pointData)
                         deallocate(pointData2)
+                        deallocate(cellDataTemp)
+                        deallocate(pointDataTemp)
+                        deallocate(localFix)
                     enddo
                 endif
             enddo
@@ -2386,7 +2418,7 @@ contains
     subroutine SolveElasticity
         PetscInt ierr
         call KSPSolve(KSPelas, Pelas, Uelas, ierr)
-        call VecView(Uelas, PETSC_VIEWER_STDOUT_WORLD, ierr)
+        !call VecView(Uelas, PETSC_VIEWER_STDOUT_WORLD, ierr)
     end subroutine
 
     ! when reverse, zero->dist, else dist->zero
