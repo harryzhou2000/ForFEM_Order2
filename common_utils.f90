@@ -82,6 +82,14 @@ contains
 
     end function
 
+    function eye3x3() result(res)
+        scalar res(3,3)
+        res = 0.0_8
+        res(1,1) = 1.0_8
+        res(2,2) = 1.0_8
+        res(3,3) = 1.0_8
+        end function
+
     function myMinusNan() result(res)
         scalar res, minus1
         minus1 = -1

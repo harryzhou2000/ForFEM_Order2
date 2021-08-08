@@ -82,7 +82,7 @@ program main
 
 
     !!!!!ELASTIC SOLVE
-    if(rank == 0) then
+    if(rank == 0) then 
         if(NBSETS<6) then
             print*,'nbset to small, need 6 at least'
         endif
@@ -96,9 +96,10 @@ program main
         bcTypeElas(1) = 0
         bcValueElas(1*3-2:1*3) = 0.0_8
         ! 2
-        bcTypeElas(2) = 0
+        bcTypeElas(2) = 1
         bcValueElas(2*3-2:2*3) = 0.0_8
-        bcValueElas(2*3-2) = 0e-3_8
+        bcValueElas(2*3-2) = 1e-3_8
+        bcValueElas2(2*9-8:2*9) = reshape(eye3x3() * 0.5,(/9/))
         ! 3 4
         bcTypeElas(3) = 1
         bcValueElas(3*3-2:3*3) = 0
