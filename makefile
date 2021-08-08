@@ -8,7 +8,7 @@ Libs=-lpetsc -llapack
 FC=mpif90
 
 Flags:=-cpp ${OptFlag} ${Include} ${Module}
-FortranTargets:=globals.o fem_order2.o set.o para_csr.o common_utils.o
+FortranTargets:=globals.o fem_order2.o set.o para_csr.o common_utils.o elastic_constitution.o
 
 all:main.exe test_petsc.exe
 
@@ -21,6 +21,8 @@ set.o: set.f90
 para_csr.o: para_csr.f90
 	${FC} -c $^  -o $@ ${Flags}
 common_utils.o: common_utils.f90
+	${FC} -c $^  -o $@ ${Flags}
+elastic_constitution.o: elastic_constitution.f90
 	${FC} -c $^  -o $@ ${Flags}
 
 

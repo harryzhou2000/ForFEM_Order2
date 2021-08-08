@@ -29,7 +29,7 @@ program main
     call initializeStatus
     call initializeLib
     call InitializeConstitution
-    
+
     if(rank == 0 )then
         call readgfile
         call ReducePoints
@@ -88,7 +88,7 @@ program main
         endif
         allocate(bcValueElas(NBSETS*3))
         allocate(bcTypeElas(NBSETS))
-        allocate(bcValueElas2(NBSETS*3))
+        allocate(bcValueElas2(NBSETS*9))
         bcValueElas2 = 0.000_8 ! h
         bcValueElas = 1.0_8  ! h*phi_b
         bcTypeElas = 1
@@ -98,22 +98,26 @@ program main
         ! 2
         bcTypeElas(2) = 0
         bcValueElas(2*3-2:2*3) = 0.0_8
-        bcValueElas(2*3-2) = 1e-3_8
+        bcValueElas(2*3-2) = 0e-3_8
         ! 3 4
         bcTypeElas(3) = 1
         bcValueElas(3*3-2:3*3) = 0
         bcTypeElas(4) = 1
         bcValueElas(4*3-2:4*3) = 0
         ! 5
-        bcTypeElas(5) = 1
-        bcValueElas(5*3-2:5*3) = 0
+        bcTypeElas(5) = 0
+        bcValueElas(5*3) = 0
+        bcValueElas(5*3-2:5*3-1) = myMinusNan()
         ! 6
         bcTypeElas(6) = 1
         bcValueElas(6*3-2:6*3) = 0.0_8
     endif
     call SetUpElasticBC_BLOCKED
     call SetUpElasticity_InitializeObjects
-
+    call SetUpElasticityPara
+    call SolveElasticity_Initialize
+    call SolveElasticity
+    call output_plt_elasticity("./out2_elas.plt", "goodstart")
 
     print*,rank,'done'
     call PetscFinalize(ierr); 

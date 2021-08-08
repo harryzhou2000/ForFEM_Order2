@@ -1,0 +1,11 @@
+#!MC 1410
+$!AlterData 
+  Equation = '{RATIO} =10'
+$!AlterData 
+  Equation = '{X}={X}+{U}*{RATIO}'
+$!AlterData 
+  Equation = '{Y}={Y}+{V}*{RATIO}'
+$!AlterData 
+  Equation = '{Z}={Z}+{W}*{RATIO}'
+$!AlterData 
+  Equation = '{UM}=sqrt({U}*{U}+{V}*{V}+{W}*{W})'

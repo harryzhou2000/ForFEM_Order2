@@ -64,22 +64,28 @@ contains
                 minmax(1) = DATAin((i-1) * 3 + 1)
             endif
             if(DATAin((i-1) * 3 + 1) > minmax(2)) then
-                minmax(1) = DATAin((i-1) * 3 + 1)
+                minmax(2) = DATAin((i-1) * 3 + 1)
             endif
             if(DATAin((i-1) * 3 + 2) < minmax(3)) then
-                minmax(1) = DATAin((i-1) * 3 + 2)
+                minmax(3) = DATAin((i-1) * 3 + 2)
             endif
             if(DATAin((i-1) * 3 + 2) > minmax(4)) then
-                minmax(1) = DATAin((i-1) * 3 + 2)
+                minmax(4) = DATAin((i-1) * 3 + 2)
             endif
             if(DATAin((i-1) * 3 + 3) < minmax(5)) then
-                minmax(1) = DATAin((i-1) * 3 + 3)
+                minmax(5) = DATAin((i-1) * 3 + 3)
             endif
             if(DATAin((i-1) * 3 + 3) > minmax(6)) then
-                minmax(1) = DATAin((i-1) * 3 + 3)
+                minmax(6) = DATAin((i-1) * 3 + 3)
             endif
         enddo
 
+    end function
+
+    function myMinusNan() result(res)
+        scalar res, minus1
+        minus1 = -1
+        res = sqrt(minus1)
     end function
     
 
