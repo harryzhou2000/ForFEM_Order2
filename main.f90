@@ -15,6 +15,7 @@ program main
     character(10) :: outtitle = "goodstart"
     real(8) :: D(3,3) = reshape((/1, 2, 3, 5 ,5, 6, 1, 8, 9/),(/3,3/))
     integer ierr, rank
+    real(8) start, end
 
     call PetscInitialize(PETSC_NULL_CHARACTER,ierr); 
     CHKERRA(ierr)
@@ -50,6 +51,8 @@ program main
 
     call SetUpPartition
 
+    start = MPI_Wtime()
+
     !!!!!THERMAL SOLVE
     if(rank == 0) then
         if(NBSETS<6) then
@@ -80,9 +83,8 @@ program main
     call SolveThermal
     call output_plt_thermal("./out2_ther.plt", "goodstart")
 
-
     !!!!!ELASTIC SOLVE
-    if(rank == 0) then 
+    if(rank == 0) then
         if(NBSETS<6) then
             print*,'nbset to small, need 6 at least'
         endif
@@ -121,6 +123,9 @@ program main
     call output_plt_elasticity("./out2_elas.plt", "goodstart")
 
     print*,rank,'done'
+    if(rank == 0)then
+        print*,'TimeElapsed:',MPI_Wtime()-start
+    endif
     call PetscFinalize(ierr); 
     CHKERRA(ierr)
 end program
