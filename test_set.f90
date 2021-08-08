@@ -11,6 +11,7 @@ program test_set
     integer,allocatable :: anotherarray(:)
     integer place
     logical found
+    real vec1(4), vec2(3)
 
     allocate(seq(3000))
     seq2 => seq
@@ -57,6 +58,10 @@ program test_set
     do i = 1,10
         anotherarray = array
     end do
+
+    vec1 = (/1,2,3,4/)
+    vec2 = (/5,6,7/)
+    
 
 end program test_set
 

@@ -49,27 +49,71 @@ program main
     endif
 
     call SetUpPartition
+
+    !!!!!THERMAL SOLVE
     if(rank == 0) then
+        if(NBSETS<6) then
+            print*,'nbset to small, need 6 at least'
+        endif
         allocate(bcValueTher(NBSETS))
         allocate(bcTypeTher(NBSETS))
-        bcValueTher = 0.0_8
+        allocate(bcValueTher2(NBSETS))
+        bcValueTher2 = 0.000_8 ! h
+        bcValueTher = 1.0_8  ! h*phi_b
         bcTypeTher = 1
-        bcTypeTher(1) = 0
-        bcTypeTher(3) = 0
-        bcTypeTher(4) = 0
+        bcValueTher(1) = 1
+        bcValueTher(2) = -14.0_8
+        bcValueTher2(2) = 14.0_8
+
+        bcTypeTher(3) = 1
+        bcValueTher(3) = 0
+        bcTypeTher(4) = 1
+        bcValueTher(4) = 0
+        bcValueTher(5) = 0
         bcTypeTher(6) = 0
         bcValueTher(6) = 1.0_8
     endif
     call SetUpThermalBC_BLOCKED
     call SetUpThermal_InitializeObjects
-    call SetUpThermal
+    call SetUpThermalPara
     call SolveThermal_Initialize
     call SolveThermal
     call output_plt_thermal("./out2_ther.plt", "goodstart")
 
+
+    !!!!!ELASTIC SOLVE
     if(rank == 0) then
-        print *, 'The total is ', result , ' cis ', c
+        if(NBSETS<6) then
+            print*,'nbset to small, need 6 at least'
+        endif
+        allocate(bcValueElas(NBSETS*3))
+        allocate(bcTypeElas(NBSETS))
+        allocate(bcValueElas2(NBSETS*3))
+        bcValueElas2 = 0.000_8 ! h
+        bcValueElas = 1.0_8  ! h*phi_b
+        bcTypeElas = 1
+        ! 1
+        bcTypeElas(1) = 0
+        bcValueElas(1*3-2:1*3) = 0.0_8
+        ! 2
+        bcTypeElas(2) = 0
+        bcValueElas(2*3-2:2*3) = 0.0_8
+        bcValueElas(2*3-2) = 1e-3_8
+        ! 3 4
+        bcTypeElas(3) = 1
+        bcValueElas(3*3-2:3*3) = 0
+        bcTypeElas(4) = 1
+        bcValueElas(4*3-2:4*3) = 0
+        ! 5
+        bcTypeElas(5) = 1
+        bcValueElas(5*3-2:5*3) = 0
+        ! 6
+        bcTypeElas(6) = 1
+        bcValueElas(6*3-2:6*3) = 0.0_8
     endif
+    call SetUpElasticBC_BLOCKED
+    call SetUpElasticity_InitializeObjects
+
 
     print*,rank,'done'
     call PetscFinalize(ierr); 
