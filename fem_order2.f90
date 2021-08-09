@@ -1,16 +1,15 @@
 !defining global variables for
 !2nd order classsic isoparametric FEM
-
-module fem_order2
-
 #include <petsc/finclude/petscvec.h>
 #include <petsc/finclude/petscmat.h>
 #include "petsc/finclude/petscviewer.h"
 #include "petsc/finclude/petscsys.h"
 #include "petsc/finclude/petscis.h"
 #include "petsc/finclude/petscksp.h"
-!#include "petsc/mpiuni/mpif.h"
-!#include "mpif.h"
+
+module fem_order2
+    !#include "petsc/mpiuni/mpif.h"
+    !#include "mpif.h"
     use petscvec
     use petscmat
     use petscsys
@@ -44,6 +43,16 @@ module fem_order2
 
     type petscScalar_vardimWrapper
         PetscScalar, allocatable :: N(:)
+    endtype
+
+    type output_plt_value
+        character(512) :: varName, varName2, varName3
+        PetscScalar, pointer :: vardata(:)
+        logical ifCell
+    endtype
+
+    type petscScalar_pointerWrapper
+        PetscScalar, pointer :: P(:)
     endtype
 
     !!!! INPUT NEEDED:
@@ -121,6 +130,12 @@ module fem_order2
     Mat :: Aelas !stiffness for elasticity
     Vec :: Pelas !load Vector for elasticity
     Vec :: Uelas !solution Vector for elasticity
+    Vec :: UGradientElas(9)
+    Vec :: StrainElas(6)
+    Vec :: StressElas(6)
+    Vec :: VonMisesElas
+    logical if_VMElas_alive, if_StrainElas_alive, if_StressElas_alive, &
+        if_UGElas_alive
     !real(8), allocatable :: gatheredUelas(:)
     Vec dofFixElas
     PetscScalar, allocatable :: bcValueElas(:)  ! nbc * 3, 0p input
@@ -212,7 +227,7 @@ module fem_order2
 contains
     ! clear procToZeroScatter*
     subroutine initializeStatus
-        PetscInt ierr
+        PetscInt ierr, idim
         call VecScatterDestroy(procToZeroScatter, ierr)
         call VecScatterDestroy(procToZeroScatter3x, ierr)
         if_procToZeroScatter3x_alive = .false.
@@ -222,6 +237,19 @@ contains
         if(allocated(cell_volumes)) then
             deallocate(cell_volumes)
         endif
+
+        if_UGElas_alive = .false.
+        do idim = 1, 9
+            call VecDestroy(UGradientElas(idim),ierr)
+        enddo
+        if_StrainElas_alive = .false.
+        if_StressElas_alive = .false.
+        do idim = 1,6
+            call VecDestroy(StrainElas(idim), ierr)
+            call VecDestroy(StressElas(idim), ierr)
+        enddo
+        if_VMElas_alive = .false.
+        call VecDestroy(VonMisesElas, ierr)
     end subroutine
 
     subroutine initializeLib
@@ -746,9 +774,7 @@ contains
         real(8), allocatable :: newCoords(:,:)
         integer :: ncells, nverts, elem_id, num_node, i, j, newInd
         integer rank, siz, ierr
-
         !!!
-
         call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
         call MPI_COMM_SIZE(MPI_COMM_WORLD,siz,ierr)
         ncells = size(CELL)
@@ -796,7 +822,6 @@ contains
             deallocate(newPointInd)
             deallocate(hasRefrence)
         endif
-
     end subroutine
 
     ! A seq routine, only 1 process should go
@@ -862,15 +887,18 @@ contains
         end select
     end function
 
-    !!!!Tecplot output
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !                                            !
+    !!!!!!!!!!!Tecplot output functions!!!!!!!!!!!
+    !                                            !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     ! A seq routine, only 1 process should go
     !https://tecplot.azureedge.net/products/360/current/360_data_format_guide.pdf
     subroutine output_plt_mesh(path, title)
         use globals
-
         implicit none
-        character(80), intent(in) :: path
+        character(*), intent(in) :: path
         integer(kind = 4) :: buffer_INT32
         character(512) :: headhead
         character(*),intent(in) :: title
@@ -887,7 +915,7 @@ contains
             print *,"error::output_plt_mesh::coord data not allocated when calling output mesh"
             stop
         end if
-        print *,"===Writing Mesh, num point ", size(COORD,2), " num elem ", size(CELL)
+        print *,"===Writing Mesh, num point=== ", size(COORD,2), " num elem ", size(CELL)
 
         close(IOUT2)
         open(IOUT2, file = path , Form = 'Unformatted' , Access = "Stream", STATUS = "Replace",  Action = "Write")
@@ -966,8 +994,8 @@ contains
             write(IOUT2) aux_node-1
             !print *, aux_node
         end do
-
         close(IOUT2)
+        print *,"===Writing Mesh Successful==="
     end subroutine
 
     ! A seq routine, only 1 process should go
@@ -1001,7 +1029,7 @@ contains
             print *,"error::output_plt_mesh::coord data not allocated when calling output mesh"
             stop
         end if
-        print *,"===Writing Data ",DATAname,", num point ", size(COORD,2), " num elem ", size(CELL)
+        print *,"===Writing Data === ",DATAname,", num point ", size(COORD,2), " num elem ", size(CELL)
 
         close(IOUT2)
         open(IOUT2, file = path , Form = 'Unformatted' , Access = "Stream", STATUS = "Replace",  Action = "Write")
@@ -1047,6 +1075,7 @@ contains
         endif
 
         close(IOUT2)
+        print*,'===Writing Data done ==='
     end subroutine
 
     ! Input DATAin is {d1[1] d2[1] d3[1] d1[2] d2[2] d3[2] ...}
@@ -1081,7 +1110,8 @@ contains
             print *,"error::output_plt_mesh::coord data not allocated when calling output mesh"
             stop
         end if
-        print *,"===Writing Data ",DATAname1, DATAname2, DATAname3,", num point ", size(COORD,2), " num elem ", size(CELL)
+        print *,"===Writing Data=== ",DATAname1,',', DATAname2,',', DATAname3,','&
+            ,", num point ", size(COORD,2), " num elem ", size(CELL)
 
         close(IOUT2)
         open(IOUT2, file = path , Form = 'Unformatted' , Access = "Stream", STATUS = "Replace",  Action = "Write")
@@ -1136,6 +1166,149 @@ contains
         endif
 
         close(IOUT2)
+        print*,'===Writing Data done ==='
+    end subroutine
+
+    subroutine output_plt_scalars(path, title, dataset)
+        use globals
+        implicit none
+        character(*), intent(in) :: path
+        integer(kind = 4) :: buffer_INT32
+        character(len=512) :: headhead
+        character(*),intent(in) :: title
+        type(output_plt_value), intent(in) ::dataset(:)
+        integer  i,j
+        logical, allocatable :: if3d(:)
+        integer(4) PetscScalarKind, totalnumdata
+
+        if(size(dataset)<=0)then
+            return
+        endif
+        if(size(dataset(1)%vardata)<=0)then
+            print*,'error::output_plt_scalars::dataset(1)%vardata missing'
+            stop
+        endif
+        PetscScalarKind = kind(dataset(1)%vardata(1))
+        if(PetscScalarKind .ne. 8)then
+            print*,'error::output_plt_scalars::do not support data rather than double'
+            stop
+        endif
+        if (.not. allocated(COORD)) then !using coord allocated to
+            print *,"error::output_plt_scalars::coord data not allocated when calling output mesh"
+            stop
+        end if
+        allocate(if3d(size(dataset)))
+        totalnumdata = 0
+        do j = 1,size(dataset)
+            if(dataset(j)%ifCell) then
+                if(size(dataset(j)%vardata) == size(CELL))then
+                    if3d(j) = .false.
+                    totalnumdata = totalnumdata + 1
+                elseif(size(dataset(j)%vardata) == size(CELL) * 3) then
+                    if3d(j) = .true.
+                    totalnumdata = totalnumdata + 3
+                else
+                    print*, "error::output_plt_scalars::non-conforming size of data", size(CELL),&
+                        'datasize: ', size(dataset(j)%vardata)
+                    stop
+                endif
+            else
+                if(size(dataset(j)%vardata) == size(COORD,2))then
+                    if3d(j) = .false.
+                    totalnumdata = totalnumdata + 1
+                elseif(size(dataset(j)%vardata) == size(COORD,2) * 3) then
+                    if3d(j) = .true.
+                    totalnumdata = totalnumdata + 3
+                else
+                    print*, "error::output_plt_scalars::non-conforming size of data", size(COORD,2),&
+                        'datasize: ', size(dataset(j)%vardata)
+                    stop
+                endif
+            endif
+        enddo
+        print *,"===Writing Data Set=== size ",size(dataset)
+        do j = 1,size(dataset)
+            print*,dataset(j)%varName
+            if(if3d(j))then
+                print*,dataset(j)%varName2
+                print*,dataset(j)%varName3
+            endif
+        enddo
+        print *,"total", totalnumdata, ", num point ", size(COORD,2), " num elem ", size(CELL)
+
+        close(IOUT2)
+        open(IOUT2, file = path , Form = 'Unformatted' , Access = "Stream", STATUS = "Replace",  Action = "Write")
+        headhead = "#!TDV112"
+        write(IOUT2) headhead(1:8), 1_4, 2_4 !_ _ solutiontype
+        call write_binary_plt_string(title, IOUT2)
+        write(IOUT2) totalnumdata
+        do j = 1,size(dataset)
+            call write_binary_plt_string(dataset(j)%varName, IOUT2)
+            if(if3d(j))then
+                call write_binary_plt_string(dataset(j)%varName2, IOUT2)
+                call write_binary_plt_string(dataset(j)%varName3, IOUT2)
+            endif
+        enddo
+
+        !one zone
+        write(IOUT2) 299.0_4 !zone
+        headhead = "main_zone"
+        call write_binary_plt_string(headhead, IOUT2)
+        write(IOUT2) -1_4, -1_4, 0.0_8, -1_4, 5_4 !ParentZone, StrandID, SolutionTime, DZC, zoneType=FEBRICK
+        write(IOUT2) 1_4  !specifyVarLocation
+        do j = 1, size(dataset)
+            if(if3d(j)) then
+                if(dataset(j)%ifCell)then
+                    write(IOUT2)  1_4, 1_4, 1_4
+                else
+                    write(IOUT2)  0_4, 0_4, 0_4
+                endif
+            else
+                if(dataset(j)%ifCell)then
+                    write(IOUT2)  1_4
+                else
+                    write(IOUT2)  0_4
+                endif
+            endif
+        enddo
+        write(IOUT2) 0_4, 0_4
+        buffer_INT32 = size(COORD,2)
+        write(IOUT2) buffer_INT32 !numpoints
+        buffer_INT32 = size(CELL)
+        write(IOUT2) buffer_INT32, 0_4, 0_4, 0_4, 0_4 !numelems, IJKCelldim, no auxiliary data
+
+        write(IOUT2) 357.0_4 !end of header
+
+        write(IOUT2) 299.0_4 !zone
+        do j = 1, totalnumdata
+            write(IOUT2) 2_4
+        enddo
+        write(IOUT2) 0_4, 0_4, -1_4 !nopassive nosharing nosharing
+        do j = 1, size(dataset)
+            if(if3d(j))then
+                write(IOUT2) getMinMax3x(dataset(j)%vardata)
+            else
+                write(IOUT2) getMinMax(dataset(j)%vardata)
+            endif
+        enddo
+
+        do j = 1, size(dataset)
+            if(if3d(j)) then
+                do i = 1,(size(dataset(j)%vardata)/3)
+                    write(IOUT2) dataset(j)%vardata((i-1)*3+1)
+                enddo
+                do i = 1,(size(dataset(j)%vardata)/3)
+                    write(IOUT2) dataset(j)%vardata((i-1)*3+2)
+                enddo
+                do i = 1,(size(dataset(j)%vardata)/3)
+                    write(IOUT2) dataset(j)%vardata((i-1)*3+3)
+                enddo
+            else
+                write(IOUT2) dataset(j)%vardata
+            endif
+        enddo
+        close(IOUT2)
+        print *,"===Writing Data Successful==="
     end subroutine
 
     subroutine write_binary_plt_string(title,IOUT2)
@@ -2213,21 +2386,9 @@ contains
         !   print*, pphi
 
         dNjdxi_ij_expand = 0.0_8
+        b_dir2strain = geometryRelation()
         ! set geometry relation, should dump to constitution
-        b_dir2strain = 0.0_8
-        b_dir2strain(1,1) = 1.0_8
-        b_dir2strain(2,5) = 1.0_8
-        b_dir2strain(3,9) = 1.0_8
-        b_dir2strain(4,6) = 0.5_8
-        b_dir2strain(4,8) = 0.5_8
-        b_dir2strain(5,7) = 0.5_8
-        b_dir2strain(5,3) = 0.5_8
-        b_dir2strain(6,2) = 0.5_8
-        b_dir2strain(6,4) = 0.5_8
-        unitbulkstrain = 0.0_8
-        unitbulkstrain(1) = 1.0_8
-        unitbulkstrain(2) = 1.0_8
-        unitbulkstrain(3) = 1.0_8
+        unitbulkstrain = getUnitBulkStrain()
 
         !print*,rank,nlocalCells
 
@@ -2466,6 +2627,176 @@ contains
         !call VecView(Uelas, PETSC_VIEWER_STDOUT_WORLD, ierr)
     end subroutine
 
+    subroutine GetElasticityUGradient ! uses lapack
+        PetscInt ierr,i,j,idim,in,ip,celllo, cellhi, elem_id, num_intpoint, num_node
+        PetscInt cellDOFs(max_numnode)
+        PetscScalar cellData(max_numnode,3), elem_coord(max_numnode,3), &
+            pointGradient(3,3), Jacobi(3,3), invJacobi(3,3),&
+            pointGradientVecs(9,max(max_numintpoint, max_numnode)), NIMRT(max_numintpoint,max_numnode),&
+            pointGradientSols(max(max_numintpoint, max_numnode),9),&
+            nodeOnes(max_numnode),&
+            nodeSolvedSingularValues(max(max_numintpoint, max_numnode))
+        !PetscScalar GradientAverage(9)
+        PetscScalar,allocatable :: workarray(:)
+        PetscScalar,pointer :: pU(:), pCoord(:)
+        integer rankout, lapackinfo, workarraysize
+
+        Vec v2cadjcount
+
+        !don't forget the ghost queries don't come along automatically
+        call VecGhostUpdateBegin(Uelas,INSERT_VALUES,SCATTER_FORWARD, ierr); 
+        call VecGhostUpdateEnd  (Uelas,INSERT_VALUES,SCATTER_FORWARD, ierr); 
+        call VecGetArrayReadF90(Uelas,pU,ierr)
+        call VecGetArrayReadF90(localCoords,pCoord,ierr)
+        call VecCreateMPI(MPI_COMM_WORLD, localDOFs, globalDOFs,v2cadjcount, ierr)
+        call VecSet(v2cadjcount, 0.0_8, ierr)
+
+        do idim = 1, 9
+            call VecCreateMPI(MPI_COMM_WORLD, localDOFs, globalDOFs ,UGradientElas(idim), ierr)
+            call VecSet(v2cadjcount, 0.0_8, ierr)
+        enddo
+
+        allocate(workarray(4096))
+        nodeOnes = 1
+        do i = 1, nLocalCells
+            celllo = localCells%rowStart(i)
+            cellhi = localCells%rowStart(i+1)
+            elem_id = getElemID(cellhi - celllo)
+            num_intpoint = elem_lib(elem_id)%num_intpoint
+            num_node = elem_lib(elem_id)%num_node
+            do j = 1, num_node
+                if(localCells%column(celllo+j) < localDOFs) then
+                    cellDOFs(1*(j-1)+1) = (localCells%column(celllo + j) + indexLo) * 1 + 0
+                else
+                    cellDOFs(1*(j-1)+1) = ghostingGlobal(localCells%column(celllo + j)-localDOFs+1) * 1 + 0
+                endif
+                !local dofs are p1 p2 p3 ...
+                cellData(j,:) = pU(localCells%column(celllo+j) * 3+1:localCells%column(celllo+j) * 3+3)
+                elem_coord(j,:) = pcoord((localCells%column(celllo+j))*3+1:(localCells%column(celllo+j))*3+3)
+                !cell data is now disps
+            enddo
+            !print*,cellData
+
+            do ip = 1, num_intpoint
+                Jacobi = matmul(elem_lib(elem_id)%dNIdLimr(:,:,ip),elem_coord(1:num_node,:))
+                invJacobi = directInverse3x3(Jacobi)
+                pointGradient = matmul(invJacobi,matmul(elem_lib(elem_id)%dNIdLimr(:,:,ip),cellData(1:num_node,:)))
+                !pointGradient is duj/dxi
+                pointGradientVecs(:,ip) = reshape((pointGradient),(/9/))
+
+            enddo
+            pointGradientSols = transpose(pointGradientVecs)
+            !!!!!!!!!!!!lapack
+            call dgelss(num_intpoint, num_node, 9, NIMRT, max_numintpoint,&
+                        pointGradientSols, size(pointGradientSols,1), nodeSolvedSingularValues,&
+                        -1.0_8, rankout, workarray,-1, lapackinfo)
+            if(lapackinfo .ne. 0)then
+                print*, 'GetElasticityUGradient::lapack dgelss QueryFailed'
+                stop
+            endif
+            workarraysize = nint(workarray(1))
+            if(workarraysize>size(workarray)) then
+                deallocate(workarray)
+                allocate(workarray(workarraysize))
+            endif
+            NIMRT(1:num_intpoint, 1:num_node) = transpose(elem_lib(elem_id)%NImr)
+            call dgelss(num_intpoint, num_node, 9, NIMRT, max_numintpoint,&
+                        pointGradientSols, size(pointGradientSols,1), nodeSolvedSingularValues,&
+                        -1.0_8, rankout, workarray,workarraysize, lapackinfo)
+            if(lapackinfo .ne. 0)then
+                print*, 'GetElasticityUGradient::lapack dgelss Failed'
+                stop
+            endif
+
+            call VecSetValues(v2cadjcount, num_node, cellDOFs, nodeOnes, ADD_VALUES,ierr)
+            do idim = 1,9
+                !GradientAverage(idim) = sum(pointGradientVecs(idim,:))/num_intpoint
+                call VecSetValues(UGradientElas(idim), num_node, cellDOFs, pointGradientSols(:,idim), ADD_VALUES,ierr)
+            enddo
+            !print*,GradientAverage
+
+        enddo
+        call VecAssemblyBegin(v2cadjcount, ierr)
+        do idim = 1,9
+            call VecAssemblyBegin(UGradientElas(idim),ierr)
+        enddo
+        call VecAssemblyEnd(v2cadjcount, ierr)
+        do idim = 1,9
+            call VecAssemblyEnd(UGradientElas(idim),ierr)
+        enddo
+        do idim = 1,9
+            call VecPointWiseDivide(UGradientElas(idim),UGradientElas(idim),v2cadjcount,ierr)
+        enddo
+
+        deallocate(workarray)
+        call VecRestoreArrayReadF90(Uelas,pU,ierr)
+        call VecRestoreArrayReadF90(localCoords,pCoord,ierr)
+        !call VecView(v2cadjcount,PETSC_VIEWER_STDOUT_WORLD, ierr)
+        call VecDestroy(v2cadjcount, ierr)
+
+    end subroutine
+
+    subroutine GetStrainStress
+        use elastic_constitution
+        PetscInt ierr, idim, i
+        PetscScalar b_dir2strain(6,9), strain(6), stress(6), E, nu, grad(9), ubulkStrain(6)
+        type(petscScalar_pointerWrapper) :: pVM, pGrad(9), pStrain(6), pStress(6), pphi
+        
+        b_dir2strain = geometryRelation()
+        ubulkStrain = getUnitBulkStrain()
+        if(.not. if_VMElas_alive) then
+            call VecCreateMPI(MPI_COMM_WORLD, localDOFs, globalDOFs ,VonMisesElas, ierr)
+        endif
+        if_VMElas_alive = .true.
+        if(.not. if_StrainElas_alive)then
+            do idim = 1,6
+                call VecCreateMPI(MPI_COMM_WORLD, localDOFs, globalDOFs ,StrainElas(idim), ierr)
+            enddo
+        endif
+        if_StrainElas_alive = .true.
+        if(.not. if_StressElas_alive) then
+            do idim = 1,6
+                call VecCreateMPI(MPI_COMM_WORLD, localDOFs, globalDOFs ,StressElas(idim), ierr)
+            enddo
+        endif
+        if_StressElas_alive = .true.
+
+        call VecGetArrayF90(VonMisesElas, pVM%P, ierr)
+        call VecGetArrayReadF90(Pther, pphi%P, ierr)
+        do idim = 1,9
+            call VecGetArrayReadF90(UGradientElas(idim), pGrad(idim)%P, ierr)
+        enddo
+        do idim = 1,6
+            call VecGetArrayF90(StrainElas(idim), pStrain(idim)%P, ierr)
+            call VecGetArrayF90(StressElas(idim), pStress(idim)%P, ierr)
+        enddo
+        do i = 1, localDOFs
+            do idim = 1,9
+                grad(idim) = pGrad(idim)%P(i)
+            enddo
+            strain = matmul(b_dir2strain, grad)
+            do idim = 1,6
+                pStrain(idim)%P(i) = strain(idim)
+            enddo
+            call tempToENU_0(pphi%P(i), E, nu)
+            stress = matmul(constitutionMat(E,nu),strain-ubulkStrain*expandRate(pphi%P(i)))
+            do idim = 1,6
+                pStress(idim)%P(i) = stress(idim)
+            enddo
+            pVM%P(i) = getVonMises(stress)
+        enddo
+        call VecRestoreArrayF90(VonMisesElas, pVM%P, ierr)
+        call VecRestoreArrayReadF90(Pther, pphi%P, ierr)
+        do idim = 1,9
+            call VecRestoreArrayReadF90(UGradientElas(idim), pGrad(idim)%P, ierr)
+        enddo
+        do idim = 1,6
+            call VecRestoreArrayF90(StrainElas(idim), pStrain(idim)%P, ierr)
+            call VecRestoreArrayF90(StressElas(idim), pStress(idim)%P, ierr)
+        enddo
+        call output_plt_vert_vec1('./out2_debug.plt','goodstartWhat', VonMisesElas, 'VMdebug')
+    end subroutine
+
     ! when reverse, zero->dist, else dist->zero
     subroutine GatherVec1(vecdist, veczero, ifreverse)
         Vec vecdist
@@ -2514,36 +2845,76 @@ contains
     end subroutine
 
     subroutine output_plt_thermal(path, title)
-        Vec veczero
-        PetscInt ierr, rank
-        PetscScalar, pointer :: gathered(:)
         character(*), intent(in) :: path, title
-
-        call MPI_COMM_RANK(MPI_COMM_WORLD, rank, ierr)
-        if(rank == 0) then
-            call VecCreateMPI(MPI_COMM_WORLD,globalDOFs,PETSC_DETERMINE, veczero, ierr)
-        else
-            call VecCreateMPI(MPI_COMM_WORLD,         0,PETSC_DETERMINE, veczero, ierr)
-        endif
-
-        call GatherVec1(Uther, veczero, .false.)
-        call VecGetArrayReadF90(veczero, gathered, ierr)
-        ! gatheredUther = gathered
-        if(rank == 0) then
-            call output_plt_scalar(path, title, gathered, 'phi', .false.)
-        endif
-        call VecRestoreArrayReadF90(veczero, gathered, ierr)
-        call VecDestroy(veczero, ierr)
-        ! if(rank == 0) then
-        !     print*,'UtherGather:: ', allocated(gatheredUther)
-        ! endif
+        call output_plt_vert_vec1(path,title,Uther,'phi')
     end subroutine
 
     subroutine output_plt_elasticity(path, title)
-        Vec veczero
+        character(*), intent(in) :: path, title
+        call output_plt_vert_vec3(path,title,Uelas,'u','v','w')
+    end subroutine
+
+    subroutine output_plt_elasticity_all(path, title)
+        PetscInt ierr, rank, idim
+        character(*), intent(in) :: path, title
+        type(output_plt_value) outArray(1+6+6+2)
+        Vec gathered(1+6+6+2)
+        call MPI_COMM_RANK(MPI_COMM_WORLD, rank, ierr)
+        if(rank == 0) then
+            call VecCreateMPI(MPI_COMM_WORLD,globalDOFs*3,PETSC_DETERMINE, gathered(1), ierr)
+            do idim = 2,(1+6+6+2)
+                call VecCreateMPI(MPI_COMM_WORLD,globalDOFs,PETSC_DETERMINE, gathered(idim), ierr)
+            enddo
+        else
+            call VecCreateMPI(MPI_COMM_WORLD,           0,PETSC_DETERMINE, gathered(1), ierr)
+            do idim = 2,(1+6+6+2)
+                call VecCreateMPI(MPI_COMM_WORLD,         0,PETSC_DETERMINE, gathered(idim), ierr)
+            enddo
+        endif
+        call GatherVec3(Uelas, gathered(1), .false.)
+        do idim = 1, 6
+            call GatherVec1(StrainElas(idim), gathered(1+idim), .false.)
+        enddo
+        do idim = 1, 6
+            call GatherVec1(StressElas(idim), gathered(1+6+idim), .false.)
+        enddo
+        call GatherVec1(VonMisesElas, gathered(1+6+6+1), .false.)
+        call GatherVec1(Uther, gathered(1+6+6+2), .false.)
+        outArray(1)%varName="u"
+        outArray(1)%varName2="v"
+        outArray(1)%varName3="w"
+        outArray(1+1)%varName="e11"
+        outArray(1+2)%varName="e22"
+        outArray(1+3)%varName="e33"
+        outArray(1+4)%varName="e23"
+        outArray(1+5)%varName="e31"
+        outArray(1+6)%varName="e12"
+        outArray(1+6+1)%varName="s11"
+        outArray(1+6+2)%varName="s22"
+        outArray(1+6+3)%varName="s33"
+        outArray(1+6+4)%varName="s23"
+        outArray(1+6+5)%varName="s31"
+        outArray(1+6+6)%varName="s12"
+        outArray(1+6+6+1)%varName="VM"
+        outArray(1+6+6+2)%varName="phi"
+        do idim = 1,(1+6+6+2)
+            call VecGetArrayReadF90(gathered(idim), outArray(idim)%vardata, ierr)
+            outArray(idim)%ifCell = .false.
+        enddo
+        if(rank == 0)then
+            call output_plt_scalars(path, title, outArray)
+        endif
+        do idim = 1,(1+6+6+2)
+            call VecRestoreArrayReadF90(gathered(idim), outArray(idim)%vardata, ierr)
+            call VecDestroy(gathered(idim), ierr)
+        enddo
+    end subroutine
+
+    subroutine output_plt_vert_vec3(path, title, outvec,name1,name2,name3)
+        Vec veczero, outvec
         PetscInt ierr, rank
         PetscScalar, pointer :: gathered(:)
-        character(*), intent(in) :: path, title
+        character(*), intent(in) :: path, title, name1,name2,name3
 
         call MPI_COMM_RANK(MPI_COMM_WORLD, rank, ierr)
         if(rank == 0) then
@@ -2552,11 +2923,33 @@ contains
             call VecCreateMPI(MPI_COMM_WORLD,           0,PETSC_DETERMINE, veczero, ierr)
         endif
 
-        call GatherVec3(Uelas, veczero, .false.)
+        call GatherVec3(outvec, veczero, .false.)
+        call VecGetArrayReadF90(veczero, gathered, ierr)
+        if(rank == 0) then
+            call output_plt_scalar3x(path, title, gathered, name1, name2, name3, .false.)
+        endif
+        call VecRestoreArrayReadF90(veczero, gathered, ierr)
+        call VecDestroy(veczero, ierr)
+    end subroutine
+
+    subroutine output_plt_vert_vec1(path, title, outvec,name)
+        Vec veczero, outvec
+        PetscInt ierr, rank
+        PetscScalar, pointer :: gathered(:)
+        character(*), intent(in) :: path, title,name
+
+        call MPI_COMM_RANK(MPI_COMM_WORLD, rank, ierr)
+        if(rank == 0) then
+            call VecCreateMPI(MPI_COMM_WORLD,globalDOFs,PETSC_DETERMINE, veczero, ierr)
+        else
+            call VecCreateMPI(MPI_COMM_WORLD,         0,PETSC_DETERMINE, veczero, ierr)
+        endif
+
+        call GatherVec1(outvec, veczero, .false.)
         call VecGetArrayReadF90(veczero, gathered, ierr)
         ! gatheredUther = gathered
         if(rank == 0) then
-            call output_plt_scalar3x(path, title, gathered, 'u', 'v', 'w', .false.)
+            call output_plt_scalar(path, title, gathered, name, .false.)
         endif
         call VecRestoreArrayReadF90(veczero, gathered, ierr)
         call VecDestroy(veczero, ierr)

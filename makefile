@@ -33,8 +33,8 @@ main.exe: main.f90 readgrid2.f90 ${FortranTargets}
 test_petsc.exe: test_petsc.f90
 	${FC}  test_petsc.f90 ${Flags} ${Libs} -o test_petsc.exe
 
-test_set.exe: test_set.f90 set.f90
-	${FC} test_set.f90 set.f90 ${Flags} -o test_set.exe
+test_set.exe: test_set.f90 set.f90 common_utils.f90
+	${FC} common_utils.f90 test_set.f90 set.f90 ${Flags} ${Libs} -o test_set.exe
 
 .PHONY:clean
 

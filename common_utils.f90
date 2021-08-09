@@ -1,11 +1,18 @@
-
 #define scalar real(kind=8)
 #define index integer(kind=4)
 
 module common_utils
-implicit none
+    implicit none
 
 contains
+    subroutine printMat(A)
+        scalar A(:,:)
+        index i
+        do i = 1, size(A,1)
+            print *, transpose(A(i:i,:))
+        enddo
+    end subroutine
+
     function directInverse3x3(A) result(AI)
         scalar, intent(in)  :: A(3, 3)
         scalar :: AI(3, 3)
@@ -41,8 +48,25 @@ contains
         c(3) = a(1) * b(2) - a(2) * b(1)
     end function
 
+    function getMinMax(DATAin) result(minmax)
+        scalar, intent(in)  ::  DATAin(:)
+        scalar ::  minmax(2)
+        index::siz,i
+        siz = size(DATAin)
+        minmax(1) =  huge(minmax(1))
+        minmax(2) = -huge(minmax(1))
+        do i = 1,siz
+            if(DATAin(i) < minmax(1)) then
+                minmax(1) = DATAin(i)
+            endif
+            if(DATAin(i) > minmax(2)) then
+                minmax(2) = DATAin(i)
+            endif
+        enddo
+    end function
+
     function getMinMax3x(DATAin) result(minmax)
-        index:: siz !size is 1/3 size of DATAin 
+        index:: siz !size is 1/3 size of DATAin
         scalar, intent(in)  ::  DATAin(:)
         scalar ::  minmax(6)
         index i
@@ -88,15 +112,13 @@ contains
         res(1,1) = 1.0_8
         res(2,2) = 1.0_8
         res(3,3) = 1.0_8
-        end function
+    end function
 
     function myMinusNan() result(res)
         scalar res, minus1
         minus1 = -1
         res = sqrt(minus1)
     end function
-    
-
 
 end module common_utils
 

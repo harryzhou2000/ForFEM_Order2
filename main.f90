@@ -1,10 +1,8 @@
 program main
-!#include <petsc/finclude/petscksp.h>
 #include <petsc/finclude/petscsys.h>
 
     use globals
     use fem_order2
-    !use petscksp
     use petscsys
     use common_utils
     implicit none
@@ -13,20 +11,12 @@ program main
     integer, dimension(5) :: someInts
     character(80) :: outfile
     character(10) :: outtitle = "goodstart"
-    real(8) :: D(3,3) = reshape((/1, 2, 3, 5 ,5, 6, 1, 8, 9/),(/3,3/))
     integer ierr, rank
     real(8) start, end
 
     call PetscInitialize(PETSC_NULL_CHARACTER,ierr); 
-    CHKERRA(ierr)
     call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr); 
-    CHKERRA(ierr)
-    if(rank == 0) then
-        print*,"This is a PETSC_NULL_CHARACTER: ",PETSC_NULL_CHARACTER
-    endif
-
     FILEINP = "./mark2_external.neu"
-    outfile = "./out2.plt"
     call initializeStatus
     call initializeLib
     call InitializeConstitution
@@ -35,7 +25,7 @@ program main
         call readgfile
         call ReducePoints
         call getVolumes
-        call output_plt_mesh(outfile, outtitle)
+        call output_plt_mesh("./out2.plt", "goodstart")
         call output_plt_scalar("./out2_data1.plt", "goodstart",cell_volumes,"cell_volume", .true.)
 
         a = -12.5
@@ -100,7 +90,7 @@ program main
         bcValueElas(1*3-1) = myMinusNan()
         bcValueElas(1*3-0) = myMinusNan()
         ! 2
-        bcTypeElas(2) = 1
+        bcTypeElas(2) = 0 ! 1 to use the mat below
         bcValueElas(2*3-2:2*3) = 0.0_8
         bcValueElas(2*3-2) = 0e-3_8
         bcValueElas2(2*9-8:2*9) = (/50.0000000000000,50.0000000000000,0.,50.0000000000000,50.0000000000000,0.,0.,0.,0./)
@@ -123,6 +113,9 @@ program main
     call SolveElasticity_Initialize
     call SolveElasticity
     call output_plt_elasticity("./out2_elas.plt", "goodstart")
+    call GetElasticityUGradient
+    call GetStrainStress
+    call output_plt_elasticity_all("./out2_elas_all.plt", "goodstart")
 
     print*,rank,'done'
     if(rank == 0)then

@@ -6,3 +6,4 @@ out*.txt
 *.o
 *.plt
 *.mod
+lib*.a
