@@ -12,6 +12,7 @@ module linear_set
 
 contains
 
+    !unused
     subroutine lsetCreate (S, cap0)
         implicit none
         type(lset) S
@@ -20,6 +21,7 @@ contains
         S%siz=0
     end subroutine
 
+    !unused
     subroutine lsetPush (S,newElem)
         implicit none
         type(lset) S
@@ -46,8 +48,8 @@ contains
 
     end subroutine
 
-
-
+    ! main entrance for int mergesort
+    ! sort Seq's interval [lo,hi)
     subroutine int_mergeSort(Seq,lo,hi)
         int:: Seq(:)
         int,intent(in) ::  lo, hi
@@ -60,6 +62,7 @@ contains
         deallocate(Useq)
     end subroutine
 
+    ! recursed function called by int_mergeSort
     recursive subroutine int_mergeSort_Rec(Seq, lo, hi, Useq) ![lo,hi)
         int :: Seq(:)
         int,intent(in) ::  lo, hi
@@ -75,6 +78,7 @@ contains
         call int_merge_inplace(Seq, lo,mid,hi,Useq)
     end subroutine
 
+    ! merge [lo,mid) with [mid,hi) with assistance of Useq
     subroutine int_merge_inplace(Seq,lo,mid,hi,Useq)
         int :: Seq(:)
         int :: Useq(:)
@@ -107,6 +111,7 @@ contains
         enddo
     end subroutine
 
+    ! check if [lo,hi) is sorted
     function int_checkSorted(Seq,lo,hi) result(res) ! true if sorted
         int Seq(:)
         int lo,hi,i
@@ -119,6 +124,8 @@ contains
         end do
     end function
 
+    ! reduce dulplicates int a sorted [lo hi)
+    ! return with the [lo,nhi) valid interval
     subroutine int_reduceSorted(Seq,lo,hi,nhi)
         int :: Seq(:)
         int,intent(in) :: lo, hi
@@ -145,6 +152,8 @@ contains
         enddo
     end subroutine
 
+    ! search tar within [loin,hiin), mid is the final place
+    ! success is true if the final place equals tar
     function int_searchBinary(Seq,loin,hiin,tar,mid) result(success)
         int :: Seq(:)
         int, intent(in) :: loin, hiin ,tar
@@ -167,10 +176,6 @@ contains
             success = .true.
         endif
     end function
-
-
-    
-
 end module
 
 #undef int

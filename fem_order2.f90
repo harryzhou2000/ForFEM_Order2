@@ -95,8 +95,10 @@ module fem_order2
     !                           !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    ! p0
     PetscInt, allocatable :: cellPartition(:)      !ncell
     PetscInt, allocatable :: cellLocalNumbering(:) !ncell
+    ! all
     PetscInt nghost
     PetscInt, allocatable :: ghostingGlobal(:)     ! ghosting is based on local cells
     PetscInt, allocatable :: ghostingGlobal3x(:)   ! ghosting is based on local cells
@@ -193,12 +195,10 @@ module fem_order2
     integer, allocatable :: AdjacencyNum0(:)
     !serial for proc0
     PetscInt, allocatable :: localCellSizes(:), localGhostSizes(:) ! size of comm
-
     !parallel
     PetscInt, allocatable :: localAdjacencyNum(:)
     PetscInt, allocatable :: ghostAdjacencyNum(:) !this is the ghosting in matrices
     integer, allocatable :: Ather_r_pos
-
     !serial for proc0
     real(8), allocatable :: cell_volumes(:)
     !!!!!!!!!!!!!!!!!!!!!!!!
@@ -825,7 +825,7 @@ contains
     end subroutine
 
     ! A seq routine, only 1 process should go
-    subroutine getVolumes()
+    subroutine getVolumes
         use globals
         integer i, ip, in, elem_id, num_intpoint, num_node
         real(8) :: elem_coord(27,3) !max num node is 27 ! warning

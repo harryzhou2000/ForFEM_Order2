@@ -6,11 +6,6 @@ program main
     use petscsys
     use common_utils
     implicit none
-    real :: a, b, result
-    integer :: c; 
-    integer, dimension(5) :: someInts
-    character(80) :: outfile
-    character(10) :: outtitle = "goodstart"
     integer ierr, rank
     real(8) start, end
 
@@ -27,16 +22,6 @@ program main
         call getVolumes
         call output_plt_mesh("./out2.plt", "goodstart")
         call output_plt_scalar("./out2_data1.plt", "goodstart",cell_volumes,"cell_volume", .true.)
-
-        a = -12.5
-        b = 15.0
-        result = a + b
-        c = a
-        someInts(1) = 1; 
-        someInts(2:4) = (/1,2,3/)
-
-        ! print*,D
-        ! print*, matmul(directInverse3x3(D),D)
     endif
 
     call SetUpPartition
@@ -55,8 +40,8 @@ program main
         bcValueTher = 1.0_8  ! h*phi_b
         bcTypeTher = 1
         bcValueTher(1) = 1
-        bcValueTher(2) = -14.0_8
-        bcValueTher2(2) = 14.0_8
+        bcValueTher(2) = -1.0e-1_8*15
+        bcValueTher2(2) = 1.0e-1_8
 
         bcTypeTher(3) = 1
         bcValueTher(3) = 0
@@ -71,7 +56,7 @@ program main
     call SetUpThermalPara
     call SolveThermal_Initialize
     call SolveThermal
-    call output_plt_thermal("./out2_ther.plt", "goodstart")
+    !call output_plt_thermal("./out2_ther.plt", "goodstart")
 
     !!!!!ELASTIC SOLVE
     if(rank == 0) then
@@ -112,7 +97,7 @@ program main
     call SetUpElasticityPara
     call SolveElasticity_Initialize
     call SolveElasticity
-    call output_plt_elasticity("./out2_elas.plt", "goodstart")
+    !call output_plt_elasticity("./out2_elas.plt", "goodstart")
     call GetElasticityUGradient
     call GetStrainStress
     call output_plt_elasticity_all("./out2_elas_all.plt", "goodstart")
