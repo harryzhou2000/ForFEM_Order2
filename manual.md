@@ -1,5 +1,11 @@
+# FEM_ORDER2 manual
+*****
+
+TABLE OF CONTENTS
+
 - [FEM_ORDER2 manual](#fem_order2-manual)
-  - [Module Brief](#module-brief)
+- [Overview](#overview)
+- [Module Brief](#module-brief)
     - [**fem_order2** in fem_order2.f90](#fem_order2-in-fem_order2f90)
       - [*Partition Data:*](#partition-data)
       - [*Cell Partition Data:*](#cell-partition-data)
@@ -35,9 +41,18 @@
       - [subroutine **GatherVec1**](#subroutine-gathervec1)
       - [subroutine **GatherVec3**](#subroutine-gathervec3)
 
-# FEM_ORDER2 manual
+# Overview
 
-## Module Brief
+The current program is designed to solve the problem of heat transfer and heat-related elastic problem.
+
+The method is traditional FEM performed on a 2nd-order mesh, with nodes in edges but not on in faces or volumes. The mesh is read into the program SEQUENTIALLY, where only process is responsible for that. And all the definitions of the problem, including boundary conditions an constitutional relations are also only given to process 0. 
+
+After reading mesh and problem definitions, mesh info is partitioned and distributed to all processes, both topology and needed point coordinates. Meanwhile, the size of needed CSR is counted and distributed so that preallocation for PETSC matrix can be done. Then, to solve the FEM problems, the program conceptually performs integration, both in the volumes and faces, to obtain the stiffness matrix and right hand side vector (RHS). The integration is performed within the normalized space for each face or volume element. As we are using isoparametric method, the jacobian for transformation between physical space to the element's normalized space can be calculated via some simple linear algebraic techniques. In the end, the program uses PETSC's KSP object to solve the linear system. 
+
+In the current implementation, while assembling the matrices and RHS, only volume integration is well parallelized while surface integration on boundary conditions is performed only by process 0. When the boundary conditions are relatively small in number, performance is un 
+
+
+# Module Brief
 
 ### **fem_order2** in fem_order2.f90
 

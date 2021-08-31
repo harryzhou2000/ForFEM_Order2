@@ -32,7 +32,7 @@ contains
 
     function expandRate(phi) result(eb)
         Scalar eb, phi
-        eb = (phi - 0.0) * 1e-5
+        eb = (phi - 0.0) * 1.3e-5
     end function
 
     function geometryRelation() result(b_dir2strain)

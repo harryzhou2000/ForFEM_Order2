@@ -6,3 +6,4 @@ https://petsc.org/release/docs/manualpages/Mat/MatCreateMPIAIJWithArrays.html
 
 ## 解方程示例，里面所有setvalues的输入都是global的编号
 https://petsc.org/release/src/ksp/ksp/tutorials/ex4.c.html
+

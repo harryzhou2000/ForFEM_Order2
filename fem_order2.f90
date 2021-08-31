@@ -764,6 +764,7 @@ contains
         k_ther(1,1) = 1.0_8
         k_ther(2,2) = 1.0_8
         k_ther(3,3) = 1.0_8
+        k_ther = k_ther * 110.0_8
     end subroutine
 
     !this is a tototally globals.mod-procedure
@@ -1228,10 +1229,10 @@ contains
         enddo
         print *,"===Writing Data Set=== size ",size(dataset)
         do j = 1,size(dataset)
-            print*,dataset(j)%varName
+            print*,trim(dataset(j)%varName)
             if(if3d(j))then
-                print*,dataset(j)%varName2
-                print*,dataset(j)%varName3
+                print*,trim(dataset(j)%varName2)
+                print*,trim(dataset(j)%varName3)
             endif
         enddo
         print *,"total", totalnumdata, ", num point ", size(COORD,2), " num elem ", size(CELL)
@@ -2367,6 +2368,7 @@ contains
         PetscScalar  nodeFix, nodeDiag, detJacobi, dsscale, E, nu
         PetscInt boundPos
         logical touchedMat
+        real(8) evreal(max_numnode*3), evimag(max_numnode*3), work(12*max_numnode)
 
         call VecSet(Pelas,0.0_8,ierr)
 
@@ -2486,6 +2488,23 @@ contains
             ! if(rank == 0) then
             !     print*,'CELLDOFS',cellDOFs
             ! endif
+            ! print*,'Sym check',norm2(cellMat-transpose(cellMat))
+            ! call dgeev        ('N',&
+            !                    'N',&
+            !                    num_node*3,&
+            !                    cellMat,&
+            !                    num_node*3,&
+            !                    evreal,&
+            !                    evimag,&
+            !                    evreal,&
+            !                    num_node*3,&
+            !                    evreal,&
+            !                    num_node*3,&
+            !                    work,&
+            !                    12*num_node,&
+            !                    ierr &
+            !                    )
+            ! print*,'Eig check',evimag(1:num_node*3)
             call MatSetValues(AElas, num_node*3, cellDOFs, num_node*3, cellDOFs, cellMat, ADD_VALUES, ierr)
             !print*,i
             !print*,cellMat
@@ -2561,7 +2580,9 @@ contains
                                       matmul(&
                                       matmul(transpose(NImr_expand(:,1:3*facesize)),reshape(pointData2(ip*9-8:ip*9),(/3,3/))),&
                                       NImr_expand(:,1:3*facesize))
-                            cellVec(1:facesize*3) = cellVec(1:facesize*3) + dsscale * elem_lib_face(face_id)%coord_intweight(ip) * &
+                            cellVec(1:facesize*3) = cellVec(1:facesize*3) + dsscale * &
+                                                    elem_lib_face(face_id)%coord_intweight(ip)&
+                                                    * &
                                                     matmul(pointData(ip*3-2:ip*3), NImr_expand(:,1:3*facesize))
                             !print*,pointData(ip*3-2:ip*3)
                         enddo
@@ -2603,6 +2624,10 @@ contains
 
     subroutine SolveThermal_Initialize !after setting up
         PetscInt ierr
+        PetscBool flag
+        !call MatView(Ather,PETSC_VIEWER_STDOUT_WORLD, ierr)
+        call MatIsSymmetric(Ather,1e-10_8,flag, ierr)
+        print*,"Thermal Symmetric Check: ",flag
         call KSPCreate(MPI_COMM_WORLD, KSPther, ierr)
         call KSPSetOperators(KSPther, Ather, Ather, ierr)
         call KSPSetFromOptions(KSPther, ierr)
@@ -2616,6 +2641,9 @@ contains
 
     subroutine SolveElasticity_Initialize !after setting up
         PetscInt ierr
+        PetscBool flag
+        call MatIsSymmetric(Aelas,1e-10_8,flag, ierr)
+        print*,"Elastic Symmetric Check: ",flag
         call KSPCreate(MPI_COMM_WORLD, KSPelas, ierr)
         call KSPSetOperators(KSPelas, Aelas, Aelas, ierr)
         call KSPSetFromOptions(KSPelas, ierr)
@@ -2741,7 +2769,7 @@ contains
         PetscInt ierr, idim, i
         PetscScalar b_dir2strain(6,9), strain(6), stress(6), E, nu, grad(9), ubulkStrain(6)
         type(petscScalar_pointerWrapper) :: pVM, pGrad(9), pStrain(6), pStress(6), pphi
-        
+
         b_dir2strain = geometryRelation()
         ubulkStrain = getUnitBulkStrain()
         if(.not. if_VMElas_alive) then

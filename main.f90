@@ -1,5 +1,6 @@
-program main
 #include <petsc/finclude/petscsys.h>
+program main
+
 
     use globals
     use fem_order2
@@ -11,7 +12,7 @@ program main
 
     call PetscInitialize(PETSC_NULL_CHARACTER,ierr); 
     call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr); 
-    FILEINP = "./mark2_external.neu"
+    FILEINP = "./mesh/mark2_external.neu"
     call initializeStatus
     call initializeLib
     call InitializeConstitution
@@ -20,8 +21,8 @@ program main
         call readgfile
         call ReducePoints
         call getVolumes
-        call output_plt_mesh("./out2.plt", "goodstart")
-        call output_plt_scalar("./out2_data1.plt", "goodstart",cell_volumes,"cell_volume", .true.)
+        call output_plt_mesh("./out/out2.plt", "goodstart")
+        call output_plt_scalar("./out/out2_data1.plt", "goodstart",cell_volumes,"cell_volume", .true.)
     endif
 
     call SetUpPartition
@@ -31,7 +32,7 @@ program main
     !!!!!THERMAL SOLVE
     if(rank == 0) then
         if(NBSETS<6) then
-            print*,'nbset to small, need 6 at least'
+            print*,'nbset too small, need 6 at least'
         endif
         allocate(bcValueTher(NBSETS))
         allocate(bcTypeTher(NBSETS))
@@ -100,12 +101,12 @@ program main
     !call output_plt_elasticity("./out2_elas.plt", "goodstart")
     call GetElasticityUGradient
     call GetStrainStress
-    call output_plt_elasticity_all("./out2_elas_all.plt", "goodstart")
+    call output_plt_elasticity_all("./out/out2_elas_all.plt", "goodstart")
 
     print*,rank,'done'
     if(rank == 0)then
         print*,'TimeElapsed:',MPI_Wtime()-start
     endif
-    call PetscFinalize(ierr); 
+    call PetscFinalize(ierr)
     CHKERRA(ierr)
 end program

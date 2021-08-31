@@ -14,6 +14,6 @@ fi
 #echo optis$@
 
 #additional="-start_in_debugger ${additional}"
-additional="-ksp_monitor ${additional}"
+additional="-ksp_monitor -ksp_type cg ${additional}"
 
-mpirun -np ${numProc} --oversubscribe ./main.exe $@  ${additional}
+mpirun -np ${numProc}  ./main.exe $@  ${additional}
