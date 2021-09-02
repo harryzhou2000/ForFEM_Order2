@@ -120,6 +120,18 @@ contains
         res = sqrt(minus1)
     end function
 
+    !sum(coeff(i)*x**(i-1))
+    function singlePoly(coeffs,x) result(p)
+        scalar,intent(in) :: coeffs(:),x
+        scalar p
+        index order
+        p = coeffs(size(coeffs))
+        do order = size(coeffs)-1,1,-1
+            p = p * x
+            p = p + coeffs(order)
+        enddo
+    end function
+
 end module common_utils
 
 #undef scalar

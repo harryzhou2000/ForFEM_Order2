@@ -6,6 +6,7 @@
 #include "petsc/finclude/petscsys.h"
 #include "petsc/finclude/petscis.h"
 #include "petsc/finclude/petscksp.h"
+#include <slepc/finclude/slepceps.h>
 
 module fem_order2
     !#include "petsc/mpiuni/mpif.h"
@@ -16,6 +17,7 @@ module fem_order2
     use petscis
     use petscisdef
     use petscksp
+    use slepceps
     use mat_csr
 
     use common_utils
@@ -129,7 +131,9 @@ module fem_order2
     !                                !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     KSP  :: KSPelas
+    EPS  :: EPSelas
     Mat :: Aelas !stiffness for elasticity
+    Mat :: Melas !mass for elasticity
     Vec :: Pelas !load Vector for elasticity
     Vec :: Uelas !solution Vector for elasticity
     Vec :: UGradientElas(9)
@@ -147,9 +151,13 @@ module fem_order2
     type(petscInt_vardimWrapper), allocatable :: bcDOFsElas(:) ! size is bc_related dofs
     type(petscScalar_vardimWrapper), allocatable :: bcVALsElas(:), bcVALsElas2(:)
     Vec dofFixElasDist
+    logical if_dynamic_elas
+    PetscInt nsolvedEigenElas
 
     KSP  :: KSPther
+    EPS  :: EPSther
     Mat :: Ather !stiffness for thermal
+    Mat :: Mther !mass for thermal
     Vec :: Pther !load Vector for thermal
     Vec :: Uther !solution Vector for elasticity
     !real(8), allocatable :: gatheredUther(:)
@@ -161,6 +169,8 @@ module fem_order2
     type(petscInt_vardimWrapper), allocatable :: bcDOFsTher(:)
     type(petscScalar_vardimWrapper), allocatable :: bcVALsTher(:), bcVALsTher2(:)
     Vec dofFixTherDist
+    logical if_dynamic_ther
+    PetscInt nsolvedEigenTher
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !                                !
     !!!! solver and solution data !!!!
@@ -213,7 +223,6 @@ module fem_order2
     !                        !
     !!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! constitutional:
-    real(8) k_ther(3,3)
     integer, parameter:: nlib = 3, nlib_face = 2
     type(fem_element) elem_lib(nlib)
     type(fem_element) elem_lib_face(nlib_face)
@@ -250,6 +259,11 @@ contains
         enddo
         if_VMElas_alive = .false.
         call VecDestroy(VonMisesElas, ierr)
+
+        if_dynamic_elas = .false.
+        if_dynamic_ther = .false.
+        nsolvedEigenElas = 0
+        nsolvedEigenTher = 0
     end subroutine
 
     subroutine initializeLib
@@ -757,14 +771,6 @@ contains
             max_numintpoint = max(max_numintpoint, elem_lib_face(i)%num_intpoint)
             max_numnode = max(max_numnode, elem_lib_face(i)%num_node)
         enddo
-    end subroutine
-
-    subroutine InitializeConstitution
-        k_ther = 0.0_8
-        k_ther(1,1) = 1.0_8
-        k_ther(2,2) = 1.0_8
-        k_ther(3,3) = 1.0_8
-        k_ther = k_ther * 110.0_8
     end subroutine
 
     !this is a tototally globals.mod-procedure
@@ -1518,7 +1524,7 @@ contains
             do i = 1,globalDOFs
                 point_partition(i) = parray(i)
             enddo
-            call output_plt_scalar('./out2_data1_part.plt', 'goodstart', point_partition, 'partition', .false.)
+            call output_plt_scalar('./out/cooler_PART.plt', 'goodstart', point_partition, 'partition', .false.)
             deallocate(point_partition)
         endif
         call IsRestoreIndicesF90(partitionIndex, parray, ierr)
@@ -2013,6 +2019,7 @@ contains
         PetscInt maxWidth
         maxWidth = adjMaxWidth
         call MatDestroy(Ather,ierr)
+        call MatDestroy(Mther,ierr)
         call VecDestroy(Uther,ierr)
         call VecDestroy(Pther,ierr)
         call MatCreate(MPI_COMM_WORLD, Ather, ierr)
@@ -2020,6 +2027,13 @@ contains
         call MatSetSizes(Ather, localDOFs, localDOFs, globalDOFs, globalDOFs, ierr)
         call MatMPIAIJSetPreallocation(Ather,maxWidth*1,localAdjacencyNum,maxWidth*1,ghostAdjacencyNum, ierr)
         call MatSetOption(Ather,MAT_ROW_ORIENTED,PETSC_FALSE,ierr) !!! Fortran is column major
+        if(if_dynamic_ther)then
+            call MatCreate(MPI_COMM_WORLD, Mther, ierr)
+            call MatSetType(Mther,MATMPIAIJ,ierr)
+            call MatSetSizes(Mther, localDOFs, localDOFs, globalDOFs, globalDOFs, ierr)
+            call MatMPIAIJSetPreallocation(Mther,maxWidth*1,localAdjacencyNum,maxWidth*1,ghostAdjacencyNum, ierr)
+            call MatSetOption(Mther,MAT_ROW_ORIENTED,PETSC_FALSE,ierr) !!! Fortran is column major
+        endif
         call VecCreateMPI(MPI_COMM_WORLD, localDOFs*1, globalDOFs*1, Pther, ierr)
         call VecCreateGhost(MPI_COMM_WORLD, localDOFs*1, globalDOFs*1,nghost, ghostingGlobal, Uther, ierr)
         CHKERRA(ierr)
@@ -2028,6 +2042,7 @@ contains
     subroutine SetUpThermalPara
         use globals
         use linear_set
+        use elastic_constitution
         PetscInt ierr
         PetscInt maxWidth
         PetscInt, pointer :: parray(:)
@@ -2133,6 +2148,57 @@ contains
             deallocate(cellMat)
         enddo
 
+        ! parallel M assemble
+        if(if_dynamic_ther)then
+        do i = 1, nLocalCells
+            celllo = localCells%rowStart(i)
+            cellhi = localCells%rowStart(i+1)
+            elem_id = getElemID(cellhi - celllo)
+            num_intpoint = elem_lib(elem_id)%num_intpoint
+            num_node = elem_lib(elem_id)%num_node
+            allocate(cellMat(num_node*1,num_node*1))
+            do j = 1, num_node
+                if(localCells%column(celllo+j) < localDOFs) then
+                    cellDOFs(1*(j - 1) + 1) = (localCells%column(celllo + j) + indexLo) * 1 + 0
+                else
+                    cellDOFs(1*(j - 1) + 1) = ghostingGlobal(localCells%column(celllo + j) - localDOFs + 1) * 1 + 0
+                endif
+            enddo
+            !!! Integrate the cellMat
+            ! get the coords
+            do in = 1, num_node
+                elem_coord(in,:) = pcoord((localCells%column(celllo+in))*3+1:(localCells%column(celllo+in))*3+3)
+            end do
+            cellMat = 0.0_8
+            do ip = 1, num_intpoint
+                Jacobi = matmul(elem_lib(elem_id)%dNIdLimr(:,:,ip),elem_coord(1:num_node,:)) !
+                detJacobi = directDet3x3(Jacobi)
+                if(detJacobi <= 0.0_8) then
+                    print*,'Jacobi minus, mesh distortion'
+                    stop
+                endif
+                cellMat = cellMat + &
+                          matmul(elem_lib(elem_id)%NImr(:,ip:ip),transpose(elem_lib(elem_id)%NImr(:,ip:ip))) &
+                          * elem_lib(elem_id)%coord_intweight(ip) * detJacobi * heat_cap_uni * rho_uni
+            end do
+            touchedMat = .false.
+            do in = 1, num_node
+                if(.not. isnan(pfix(localCells%column(celllo+in)+1))) then
+                    nodeFix = pfix(localCells%column(celllo+in)+1)
+                    nodeDiag = cellMat(in,in)
+                    cellMat(in,:) = 0.0_8
+                    cellMat(:,in) = 0.0_8
+                    cellMat(in,in) = nodeDiag * 1e-100_8! to make the freq of the mode very large but M is still positive-definite
+                    touchedMat = .true.
+                endif
+            enddo
+            call MatSetValues(Mther, num_node*1, cellDOFs, num_node*1, cellDOFs, cellMat, ADD_VALUES, ierr)
+            !print*,i
+            !print*,cellMat
+            deallocate(cellMat)
+        enddo
+        endif
+
         !!!! this bc set is now only serial
         if(rank == 0)then
             do ibc = 1, NBSETS
@@ -2199,7 +2265,13 @@ contains
         endif
 
         call MatAssemblyBegin(Ather, MAT_FINAL_ASSEMBLY, ierr)
+        if(if_dynamic_ther)then
+            call MatAssemblyBegin(Mther, MAT_FINAL_ASSEMBLY, ierr)
+        endif
         call MatAssemblyEnd(Ather, MAT_FINAL_ASSEMBLY, ierr)
+        if(if_dynamic_ther)then
+            call MatAssemblyEnd(Mther, MAT_FINAL_ASSEMBLY, ierr)
+        endif
         call VecAssemblyBegin(Pther, ierr)
         call VecAssemblyEnd(Pther,ierr)
         call VecRestoreArrayReadF90(dofFixTherDist, pfix, ierr)
@@ -2238,6 +2310,7 @@ contains
             deallocate(bcVALsElas2)
         endif
         !print*,rank,'here'
+
         if(rank==0) then
             allocate(bcDOFsElas(NBSETS))
             allocate(bcVALsElas(NBSETS))
@@ -2246,9 +2319,12 @@ contains
             nverts = size(COORD,dim=2)
             print*,nverts,'bcnverts'
             !!! mark set dofs
+            print*,'here'
             call VecCreateMPI(MPI_COMM_WORLD, globalDOFs*3, globalDOFs*3, dofFixElas, ierr)
+            print*,'here'
             minus1 = -1
             call VecSet(dofFixElas ,sqrt(minus1), ierr)
+
             do ibc = 1, NBSETS
                 if(bcTypeElas(ibc) == 0) then
                     !print*,'fixedbc', ibc, bname(ibc),bcValueElas(ibc)
@@ -2265,6 +2341,7 @@ contains
                             call VecSetValues(dofFixElas,3, (/faceNodes(j)*3-3,faceNodes(j)*3-2,faceNodes(j)*3-1/),&
                                               bcValueElas(ibc*3-2:ibc*3),INSERT_VALUES, ierr)
                         enddo
+
                     enddo
                 else if(bcTypeElas(ibc) == 1) then ! linear flow condition
                     bcDofsCount = 0
@@ -2303,6 +2380,7 @@ contains
             call VecCreateMPI(MPI_COMM_WORLD,      0, globalDOFs*3, dofFixElas, ierr)
             call VecSet(dofFixElas ,sqrt(minus1), ierr) ! it is collective! must also call
         endif
+
         call VecAssemblyBegin(dofFixElas,ierr)
         call VecAssemblyEnd  (dofFixElas,ierr)
         call VecCreateGhost(MPI_COMM_WORLD, localDOFs*3, globalDOFs*3,nghost*3,ghostingGlobal3x ,dofFixElasDist, ierr)
@@ -2324,6 +2402,7 @@ contains
             ghostAdjacencyNum3x(i*3-2:i*3) = ghostAdjacencyNum(i) * 3
         enddo
         call MatDestroy(Aelas,ierr)
+        call MatDestroy(Melas,ierr)
         call VecDestroy(Uelas,ierr)
         call VecDestroy(Pelas,ierr)
         call MatCreate(MPI_COMM_WORLD, Aelas, ierr)
@@ -2331,6 +2410,13 @@ contains
         call MatSetSizes(Aelas, localDOFs*3, localDOFs*3, globalDOFs*3, globalDOFs*3, ierr)
         call MatMPIAIJSetPreallocation(Aelas,maxWidth*3,localAdjacencyNum3x,maxWidth*3,ghostAdjacencyNum3x, ierr)
         call MatSetOption(Aelas,MAT_ROW_ORIENTED,PETSC_FALSE,ierr) !!! Fortran is column major
+        if(if_dynamic_elas)then
+            call MatCreate(MPI_COMM_WORLD, Melas, ierr)
+            call MatSetType(Melas,MATMPIAIJ,ierr)
+            call MatSetSizes(Melas, localDOFs*3, localDOFs*3, globalDOFs*3, globalDOFs*3, ierr)
+            call MatMPIAIJSetPreallocation(Melas,maxWidth*3,localAdjacencyNum3x,maxWidth*3,ghostAdjacencyNum3x, ierr)
+            call MatSetOption(Melas,MAT_ROW_ORIENTED,PETSC_FALSE,ierr) !!! Fortran is column major
+        endif
         call VecCreateMPI(MPI_COMM_WORLD, localDOFs*3, globalDOFs*3, Pelas, ierr)
         call VecCreateGhost(MPI_COMM_WORLD, localDOFs*3, globalDOFs*3,nghost*3,ghostingGlobal3x ,Uelas, ierr)
         deallocate(localAdjacencyNum3x)
@@ -2362,6 +2448,7 @@ contains
         PetscScalar :: dNjdxi_ij(3,max_numnode), b__mul__dNjdxi_ij(6,max_numnode*3), &
             dNjdxi_ij_expand(9,max_numnode*3), NImr_expand(3,max_numnode*3), &
             b_dir2strain(6,9), unitbulkstrain(6), btd(max_numnode*3,6)
+        PetscScalar :: Ni_expand(3,3*max_numnode)
         ! the dNjdxi_ij_expand is [mat],   [mat]*[u1v1w1u2v2w2...]' = [dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz]'
         ! the b is geometry relation , b*dir = strain, dir = [dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz]'
         !                              strain = [sxx syy szz syz szx sxy]'
@@ -2388,6 +2475,7 @@ contains
         !   print*, pphi
 
         dNjdxi_ij_expand = 0.0_8
+        Ni_expand = 0.0_8
         b_dir2strain = geometryRelation()
         ! set geometry relation, should dump to constitution
         unitbulkstrain = getUnitBulkStrain()
@@ -2441,6 +2529,7 @@ contains
                 enddo
                 b__mul__dNjdxi_ij(:,1:num_node*3) = matmul(b_dir2strain, dNjdxi_ij_expand(:,1:num_node*3))
                 call tempToENU_0(pointData(ip), E, nu) ! use temp-realted E and nu
+                !print*,'E',constitutionMat(E,nu)
                 btd(1:num_node*3,:) = matmul(transpose(b__mul__dNjdxi_ij(:,1:num_node*3)), constitutionMat(E,nu))
 
                 cellMat = cellMat + matmul(btd (1:num_node*3,:) , b__mul__dNjdxi_ij(:,1:num_node*3)) &
@@ -2505,11 +2594,104 @@ contains
             !                    ierr &
             !                    )
             ! print*,'Eig check',evimag(1:num_node*3)
-            call MatSetValues(AElas, num_node*3, cellDOFs, num_node*3, cellDOFs, cellMat, ADD_VALUES, ierr)
+            call MatSetValues(Aelas, num_node*3, cellDOFs, num_node*3, cellDOFs, cellMat, ADD_VALUES, ierr)
             !print*,i
             !print*,cellMat
             deallocate(cellMat)
         enddo
+
+        ! parallel M assemble
+        if(if_dynamic_elas)then
+        do i = 1, nLocalCells
+            celllo = localCells%rowStart(i)
+            cellhi = localCells%rowStart(i+1)
+            elem_id = getElemID(cellhi - celllo)
+            num_intpoint = elem_lib(elem_id)%num_intpoint
+            num_node = elem_lib(elem_id)%num_node
+            allocate(cellMat(num_node*3,num_node*3))
+            do j = 1, num_node
+                if(localCells%column(celllo+j) < localDOFs) then
+                    cellDOFs(3*(j-1)+1) = (localCells%column(celllo + j) + indexLo) * 3 + 0
+                    cellDOFs(3*(j-1)+2) = (localCells%column(celllo + j) + indexLo) * 3 + 1
+                    cellDOFs(3*(j-1)+3) = (localCells%column(celllo + j) + indexLo) * 3 + 2
+                else
+                    cellDOFs(3*(j-1)+1) = ghostingGlobal(localCells%column(celllo + j)-localDOFs+1) * 3 + 0
+                    cellDOFs(3*(j-1)+2) = ghostingGlobal(localCells%column(celllo + j)-localDOFs+1) * 3 + 1
+                    cellDOFs(3*(j-1)+3) = ghostingGlobal(localCells%column(celllo + j)-localDOFs+1) * 3 + 2
+                endif
+                !local dofs are x1 y1 z1 x2 y2 z2 ...
+                cellData(j) = pphi(localCells%column(celllo+j) + 1) ! this is temprature phi
+                localfix(j*3-2:j*3) = pfix(localCells%column(celllo+j)*3+1 : localCells%column(celllo+j)*3+3)
+            enddo
+            !print*,localFix
+            !pointData(1:num_intpoint) = matmul(cellData(1:num_node), elem_lib(elem_id)%NImr)
+            !!! Integrate the cellMat
+            ! get the coords
+            do in = 1, num_node
+                elem_coord(in,:) = pcoord((localCells%column(celllo+in))*3+1:(localCells%column(celllo+in))*3+3)
+            end do
+            cellMat = 0.0_8
+            cellVec = 0.0_8
+            do ip = 1, num_intpoint
+                Jacobi = matmul(elem_lib(elem_id)%dNIdLimr(:,:,ip),elem_coord(1:num_node,:)) !
+                detJacobi = directDet3x3(Jacobi)
+                if(detJacobi <= 0.0_8) then
+                    print*,'Jacobi minus, mesh distortion'
+                    stop
+                endif
+                do in=1,num_node
+                    ! Ni_expand(:, 1:num_node*3) * nodevalues(1:numnode*3) = intpoint3DVector
+                    Ni_expand(1,in*3-2) = elem_lib(elem_id)%NImr(in,ip)
+                    Ni_expand(2,in*3-1) = elem_lib(elem_id)%NImr(in,ip)
+                    Ni_expand(3,in*3-0) = elem_lib(elem_id)%NImr(in,ip)
+                enddo
+                cellMat = cellMat +  &
+                          matmul(transpose(Ni_expand(:,1:num_node*3)),Ni_expand(:,1:num_node*3)) &
+                          * elem_lib(elem_id)%coord_intweight(ip) * detJacobi * rho_uni
+                ! if rho is not a unitary 3x3, rho should be put between the matmul
+            end do
+            !!! decouple the mass matrix's fixed points
+            touchedMat = .false.
+            do in = 1, num_node*3
+                if(.not. isnan(localfix(in))) then
+                    nodeFix = localfix(in)
+                    !print*,nodeFix,mod(in,3)
+                    nodeDiag = cellMat(in,in)
+                    cellMat(in,:) = 0.0_8
+                    cellMat(:,in) = 0.0_8
+                    cellMat(in,in) = nodeDiag*1e-100_8 ! to make the freq of the mode very large but M is still positive-definite
+                    touchedMat = .true.
+                endif
+            enddo
+
+            ! if(rank == 0) then
+            !     print*,'CELLDOFS',cellDOFs
+            ! endif
+            ! print*,'Sym check',norm2(cellMat-transpose(cellMat))
+            ! print*,'cellmat'
+            ! call printMat(cellMat)
+            ! call dgeev        ('N',&
+            !                    'N',&
+            !                    num_node*3,&
+            !                    cellMat,&
+            !                    num_node*3,&
+            !                    evreal,&
+            !                    evimag,&
+            !                    evreal,&
+            !                    num_node*3,&
+            !                    evreal,&
+            !                    num_node*3,&
+            !                    work,&
+            !                    12*num_node,&
+            !                    ierr &
+            !                    )
+            ! print*,'Eig check',evreal(1:num_node*3)
+            call MatSetValues(Melas, num_node*3, cellDOFs, num_node*3, cellDOFs, cellMat, ADD_VALUES, ierr)
+            !print*,i
+            !print*,cellMat
+            deallocate(cellMat)
+        enddo
+        endif
 
         !!!! this bc set is now only serial
         NImr_expand = 0.0_8
@@ -2602,8 +2784,14 @@ contains
             enddo
         endif
 
-        call MatAssemblyBegin(AElas, MAT_FINAL_ASSEMBLY, ierr)
-        call MatAssemblyEnd(AElas, MAT_FINAL_ASSEMBLY, ierr)
+        call MatAssemblyBegin(Aelas, MAT_FINAL_ASSEMBLY, ierr)
+        if(if_dynamic_elas)then
+            call MatAssemblyBegin(Melas, MAT_FINAL_ASSEMBLY, ierr)
+        endif
+        call MatAssemblyEnd(Aelas, MAT_FINAL_ASSEMBLY, ierr)
+        if(if_dynamic_elas)then
+            call MatAssemblyEnd(Melas, MAT_FINAL_ASSEMBLY, ierr)
+        endif
         call VecAssemblyBegin(PElas, ierr)
         call VecAssemblyEnd(PElas,ierr)
         call VecRestoreArrayReadF90(dofFixElasDist, pfix, ierr)
@@ -2633,10 +2821,38 @@ contains
         call KSPSetFromOptions(KSPther, ierr)
     end subroutine
 
+    subroutine SolveThermalMode_Initialize
+        PetscInt ierr
+        call EPSCreate(MPI_COMM_WORLD,EPSther,ierr)
+        call EPSSetOperators(EPSther,Ather,Mther,ierr)
+        call EPSSetProblemType(EPSther,EPS_GHEP,ierr)
+        call EPSSetFromOptions(EPSther,ierr)
+        call EPSSetWhichEigenpairs(EPSther,EPS_SMALLEST_REAL,ierr)
+    end subroutine
+
     subroutine SolveThermal
         PetscInt ierr
         call KSPSolve(KSPther, Pther, Uther, ierr)
         !call VecView(Pther, PETSC_VIEWER_STDOUT_WORLD, ierr)
+    end subroutine
+
+    subroutine SolveThermalMode
+        PetscInt ierr, nconverged,i
+        PetscScalar eigr, eigi
+        character(len=512) nameTMP
+        integer :: rank, siz
+        call MPI_COMM_RANK(MPI_COMM_WORLD, rank, ierr)
+        call EPSSolve(EPSther, ierr)
+        call EPSGetConverged(EPSther,nconverged,ierr)
+        nsolvedEigenTher = nconverged
+        if(rank == 0)then
+            print*,'solved eigenvalues: '
+            do i = 1,nconverged
+                call EPSGetEigenvalue(EPSther,i-1,eigr,eigi,ierr)
+                print*,eigr,eigi
+            enddo
+        endif
+        !call EPSValuesView(EPSther,PETSC_VIEWER_STDOUT_WORLD,ierr)
     end subroutine
 
     subroutine SolveElasticity_Initialize !after setting up
@@ -2649,10 +2865,38 @@ contains
         call KSPSetFromOptions(KSPelas, ierr)
     end subroutine
 
+    subroutine SolveElasticMode_Initialize
+        PetscInt ierr
+        call EPSCreate(MPI_COMM_WORLD,EPSelas,ierr)
+        call EPSSetOperators(EPSelas,Aelas,Melas,ierr)
+        call EPSSetProblemType(EPSelas,EPS_GHEP,ierr)
+        call EPSSetFromOptions(EPSelas,ierr)
+        call EPSSetWhichEigenpairs(EPSelas,EPS_SMALLEST_REAL,ierr)
+    end subroutine
+
     subroutine SolveElasticity
         PetscInt ierr
         call KSPSolve(KSPelas, Pelas, Uelas, ierr)
         !call VecView(Uelas, PETSC_VIEWER_STDOUT_WORLD, ierr)
+    end subroutine
+
+    subroutine SolveElasticMode
+        PetscInt ierr, nconverged,i
+        PetscScalar eigr, eigi
+        character(len=512) nameTMP
+        integer :: rank, siz
+        call MPI_COMM_RANK(MPI_COMM_WORLD, rank, ierr)
+        call EPSSolve(EPSelas, ierr)
+        call EPSGetConverged(EPSelas,nconverged,ierr)
+        nsolvedEigenElas = nconverged
+        if(rank == 0)then
+            print*,'solved eigenvalues: '
+            do i = 1,nconverged
+                call EPSGetEigenvalue(EPSelas,i-1,eigr,eigi,ierr)
+                print*,eigr,eigi
+            enddo
+        endif
+        !call EPSValuesView(EPSelas,PETSC_VIEWER_STDOUT_WORLD,ierr)
     end subroutine
 
     subroutine GetElasticityUGradient ! uses lapack
@@ -2876,10 +3120,46 @@ contains
         character(*), intent(in) :: path, title
         call output_plt_vert_vec1(path,title,Uther,'phi')
     end subroutine
+    
+    subroutine output_plt_thermal_mode(path,title,imode)
+        PetscInt imode
+        PetscInt ierr
+        PetscScalar eigr, eigi
+        Vec UtherModeR, UtherModeI
+        character(*) path,title
+        character(len=512) nameTMP
+        write(nameTMP,'(i30)') imode
+        !print*,'MCIIA',globalDOFs
+        call VecCreateMPI(MPI_COMM_WORLD, localDOFs, globalDOFs ,UtherModeR, ierr)
+        call VecCreateMPI(MPI_COMM_WORLD, localDOFs, globalDOFs ,UtherModeI, ierr)
+        nameTMP = trim(path)//trim(adjustl(nameTMP))//'.plt'
+        call EPSGetEigenvector(EPSther,imode,UtherModeR,UtherModeI,ierr)
+        call output_plt_vert_vec1(nameTMP, title, UtherModeR, 'mode')
+        call VecDestroy(UtherModeR,ierr)
+        call VecDestroy(UtherModeI,ierr)
+    end subroutine
 
     subroutine output_plt_elasticity(path, title)
         character(*), intent(in) :: path, title
         call output_plt_vert_vec3(path,title,Uelas,'u','v','w')
+    end subroutine
+
+    subroutine output_plt_elasticity_mode(path,title,imode)
+        PetscInt imode
+        PetscInt ierr
+        PetscScalar eigr, eigi
+        Vec UelasModeR, UelasModeI
+        character(*) path,title
+        character(len=512) nameTMP
+        write(nameTMP,'(i30)') imode
+        !print*,'MCIIA',globalDOFs
+        call VecCreateMPI(MPI_COMM_WORLD, localDOFs*3, globalDOFs*3 ,UelasModeR, ierr)
+        call VecCreateMPI(MPI_COMM_WORLD, localDOFs*3, globalDOFs*3 ,UelasModeI, ierr)
+        nameTMP = trim(path)//trim(adjustl(nameTMP))//'.plt'
+        call EPSGetEigenvector(EPSelas,imode,UelasModeR,UelasModeI,ierr)
+        call output_plt_vert_vec3(nameTMP, title, UelasModeR, 'modeu', 'modev','modew')
+        call VecDestroy(UelasModeR,ierr)
+        call VecDestroy(UelasModeI,ierr)
     end subroutine
 
     subroutine output_plt_elasticity_all(path, title)
@@ -2936,6 +3216,7 @@ contains
             call VecRestoreArrayReadF90(gathered(idim), outArray(idim)%vardata, ierr)
             call VecDestroy(gathered(idim), ierr)
         enddo
+        call MPI_Barrier(MPI_COMM_WORLD,ierr)
     end subroutine
 
     subroutine output_plt_vert_vec3(path, title, outvec,name1,name2,name3)
@@ -2958,6 +3239,7 @@ contains
         endif
         call VecRestoreArrayReadF90(veczero, gathered, ierr)
         call VecDestroy(veczero, ierr)
+        call MPI_Barrier(MPI_COMM_WORLD,ierr)
     end subroutine
 
     subroutine output_plt_vert_vec1(path, title, outvec,name)
@@ -2984,6 +3266,7 @@ contains
         ! if(rank == 0) then
         !     print*,'UtherGather:: ', allocated(gatheredUther)
         ! endif
+        call MPI_Barrier(MPI_COMM_WORLD,ierr)
     end subroutine
 
     subroutine deallocate_petscInt_vardimWrapper(obj)
@@ -3022,6 +3305,7 @@ contains
     !!!!!!!!!!deprecated!!!!!!!!!!
     subroutine SetUpThermal ! deprecated
         use globals
+        use elastic_constitution
         PetscInt ierr
         PetscInt maxWidth
         PetscInt, pointer :: parray(:)

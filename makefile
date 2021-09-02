@@ -6,13 +6,13 @@ SlepcPath=${SLEPC_DIR}/include
 SlepcBuildPath=${SLEPC_DIR}/${PETSC_ARCH}/include
 Include=-I"${PetscPath}" -I"${PetscBuildPath}"  -I"${SlepcPath}" -I"${SlepcBuildPath}"
 Module=
-Libs=-lslepc -lpetsc -llapack -lparmetis -lmetis
+Libs=-lslepc -lpetsc -lsuperlu_dist -llapack -lparmetis -lmetis -lstdc++
 FC=mpiifort
 
 Flags:=-cpp ${OptFlag} ${Include} ${Module}
 FortranTargets:=globals.o set.o para_csr.o  common_utils.o elastic_constitution.o fem_order2.o
 
-all:main.exe main_cooler.exe test_petsc.exe
+all: main_cooler.exe test_petsc.exe
 
 # para_csr.o: para_csr.f90
 # 	${FC} -c $^  -o $@ ${Flags}
@@ -34,6 +34,8 @@ all:main.exe main_cooler.exe test_petsc.exe
 main.exe: main.f90 readgrid2.f90 ${FortranTargets}
 	${FC} $^  -o $@  ${Flags}  ${Libs}
 main_cooler.exe: main_cooler.f90 readgrid2.f90 ${FortranTargets}
+	${FC} $^  -o $@  ${Flags}  ${Libs}
+main_beam.exe: main_beam.f90 readgrid2.f90 ${FortranTargets}
 	${FC} $^  -o $@  ${Flags}  ${Libs}
 
 test_petsc.exe: test_petsc.f90

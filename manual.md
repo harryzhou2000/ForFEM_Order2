@@ -5,6 +5,8 @@ TABLE OF CONTENTS
 
 - [FEM_ORDER2 manual](#fem_order2-manual)
 - [Overview](#overview)
+- [Numerical Methods](#numerical-methods)
+  - [Constructing The Linear Elastic Problem](#constructing-the-linear-elastic-problem)
 - [Module Brief](#module-brief)
     - [**fem_order2** in fem_order2.f90](#fem_order2-in-fem_order2f90)
       - [*Partition Data:*](#partition-data)
@@ -49,7 +51,56 @@ The method is traditional FEM performed on a 2nd-order mesh, with nodes in edges
 
 After reading mesh and problem definitions, mesh info is partitioned and distributed to all processes, both topology and needed point coordinates. Meanwhile, the size of needed CSR is counted and distributed so that preallocation for PETSC matrix can be done. Then, to solve the FEM problems, the program conceptually performs integration, both in the volumes and faces, to obtain the stiffness matrix and right hand side vector (RHS). The integration is performed within the normalized space for each face or volume element. As we are using isoparametric method, the jacobian for transformation between physical space to the element's normalized space can be calculated via some simple linear algebraic techniques. In the end, the program uses PETSC's KSP object to solve the linear system. 
 
-In the current implementation, while assembling the matrices and RHS, only volume integration is well parallelized while surface integration on boundary conditions is performed only by process 0. When the boundary conditions are relatively small in number, performance is un 
+In the current implementation, while assembling the matrices and RHS, only volume integration is well parallelized while surface integration on boundary conditions is performed only by process 0. When the boundary conditions are relatively small in number, performance is unchanged. I have future plans of parallization of the boundary integrals.
+
+# Numerical Methods
+
+In conventional finite-element method, or a common Galerkin method, the trial functions, being identical with the bases of the discrete solution, are considered to be $C^0$. Therefore the piecewise defined polynomial bases should maintain $C^0$ continuity on the interfaces of volumes (take 3-D for example). As a result, it is better to consider the discrete DOFs to be set on the vertices, and the bases are interpolation functions that satisfy a kronecker-delta property over the vertices. For example, when each volume is a tetrahedron with 4 vertices, you can easily transform it linearly into a corner of a cartesian box, and using 3 cartesian axes you can easily define first-order bases functions for each vertex. Generally, the basis functions are defined in a normalized coordinate system as polynomials. As the transformation between the normalized space and the geometric space is generally not a linear mapping (basically as curved elements), generally the same set of basis functions are used to interpolate the mapping. Fundamentally, the actual bases are fractions rather than polynomials, but as flat-faced and near flat-faced elements are the majority, the orders of polynomial-based numerical integral are mostly decided with the situation of a linear spacial mapping.
+
+This program uses serendipity method to infer the correct basis functions in the normal space, which is 2nd order polynomials. The exact formulae can be found in the source code.
+
+Using the interpolation described above, a Galerkin method can be derived. For linear heat transfer and linear elasticity, the Galerkin discretion causes the ODEs: 
+
+$$
+M_t\ddot{a}_t+C_t\dot{a}_t+K_ta_t=F_t
+$$
+
+$$
+M\ddot{a}+C\dot{a}+Ka=F
+$$
+
+Where the subscripts 't' denote that it's related to the heat transfer problem, or elastic problem otherwise. $a$ and $a_t$ are just DOFs or nodal values, in the elastic problems, we denote that for nodes $[i_0,i_1,...]$, $a$ is column vector $[u_0,v_0,w_0,u_1,v_1,w_1,...]^T$, where $[u,v,w]^T$ is the displacement of some point.
+In common problems, only $M,M_t,K,K_t,F,F_t$ are desired, so we discuss them here first:
+
+## Constructing The Linear Elastic Problem
+
+The Galerkin method tells us that: 
+
+$$
+K=\int_{\Omega}{B^{T}DBdV}+\int_{\partial \Omega}{N^THNd\Gamma},\ \ \ \;
+M=\int_{\Omega}{N^{T}\rho NdV},\ \ \ \;\\\ \\
+F=\int_{\Omega}{f^TNdV}+\int_{\partial \Omega}{p^TNd\Gamma}+\int_{\partial \Omega}{(Hx_0)^TNd\Gamma}
+$$
+
+$\Omega$ is the domain of definition, and $dV$ denotes its differential. $\partial \Omega$ is the boundary of the domain of definition, and $d\Gamma$ denotes its differential. 
+
+In the formulae above, $B$ is the function transforming $a$ into the interpolated strain field (using a as the right vector), where $B(x,y,z)_{ij}a_j=e(x,y,z)_i$, and $i=1,2,...,6$ is the subscript for the components of the strain vector, where the transposing and matrix products are on the $i,j$ subscripts.
+
+$D=D_{ij}$ is the 6x6 constitutional relation trnasforming strain into stress, where $\sigma_i=D_{ij}e_j$.
+
+$N$ transforms $a$ into the interpolated displacement field, it's definition is similar with B, where $N(x,y,z)_{ij}a_j=disp(x,y,z)_i\equiv[u,v,w]^T(x,y,z)_i$.
+
+$H$ is the 3x3 matrix defining the stiffness of a linearly elastic basement, (not a scalar instead of a matrix for the stiffness could very likely be anistrophic), transforming displacement form basepoint $x_0$ to facial force. $H$ is zero on the boundaries not defined as a elastic basement. $H$ should be symmetric and positive semidefinite to maintain correct physical meaning, that is, it is acuatlly defined by its 3 eigenvalues and 3 eigenvectors.
+
+$\rho$ is the density field, defined as a scalar field.
+
+$f$ is the volume force, including the effect of prestress caused by temperature change.
+
+$p$ is only not zero on known-force boundaries, it is a 3d vector field.
+
+$Hx_0$ can be viewed as the payload force caused by elastic basement boundaries. Actually, in the program, force boundaries are performed with the elastic base boundary scheme. As the inputs are $Hx_0$ and $H$, setting $H=0$ (while $x_0\rarr\infty$, which is not the numeric input) means the boundary condition becomes a given force.
+
+The discrete values of $K,M,F$ are integrated on the peicewise polinomials, where (including $N$, $B$) they can actually be decomposed into each element (of volume or face), (for 3d case) we define $K_e,M_e,F_e$, which are the results of integrals performing only in the volume $e$. More over, the ordering of $K_e,M_e,F_e$ are solely consisting the part of $a$ (DOFs on nodes) adjacent to the volume (the other parts are zero in the global matrices and vectors). Therefo re, 
 
 
 # Module Brief

@@ -1,0 +1,11 @@
+#!MC 1410
+$!AlterData 
+  Equation = '{RATIO} =10'
+$!AlterData 
+  Equation = '{X}={X}+{modeu}*{RATIO}'
+$!AlterData 
+  Equation = '{Y}={Y}+{modev}*{RATIO}'
+$!AlterData 
+  Equation = '{Z}={Z}+{modew}*{RATIO}'
+$!AlterData 
+  Equation = '{modeM}=sqrt({modeU}*{modeU}+{modeV}*{modeV}+{modeW}*{modeW})'

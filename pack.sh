@@ -1,2 +1,2 @@
 #!/bin/bash
-zip $1 *.f90 makefile
+zip $1 *.f90 makefile run*.sh
