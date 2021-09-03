@@ -1,0 +1,409 @@
+ readbc           1                             BASE
+ readbc           2                             FREE
+ readbc           3                              TOP
+ ===Writing Mesh, num point===        46541  num elem        10000
+ ===Writing Mesh Successful===
+ ===Writing Data === cell_volume, num point        46541  num elem        10000
+ ===Writing Data done ===
+           0 LOCALDOFS       11378
+           1 LOCALDOFS       11678
+           2 LOCALDOFS       11935
+           3 LOCALDOFS       11550
+ ===Writing Data === partition, num point        46541  num elem        10000
+ ===Writing Data done ===
+ Max          80
+ Min          19       46541           1
+       11378       11378
+       11678       11678
+       11935       11935
+       11550       11550
+ ng         681
+ ng         292
+ ng         309
+ ng         700
+ Partition Time:  0.379356968573120     
+       46541 bcnverts
+ Thermal Setup Time:  0.765193890787486     
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+  0 KSP Residual norm 3.873496696502e+04 
+  1 KSP Residual norm 2.911820222913e+03 
+  2 KSP Residual norm 1.893008705958e+03 
+  3 KSP Residual norm 1.333511099500e+03 
+  4 KSP Residual norm 1.215709395938e+03 
+  5 KSP Residual norm 9.515680704090e+02 
+  6 KSP Residual norm 7.039461804309e+02 
+  7 KSP Residual norm 3.323702335716e+02 
+  8 KSP Residual norm 1.706162640351e+02 
+  9 KSP Residual norm 1.064095607730e+02 
+ 10 KSP Residual norm 7.730152446682e+01 
+ 11 KSP Residual norm 5.870119340994e+01 
+ 12 KSP Residual norm 7.512978551452e+00 
+ 13 KSP Residual norm 2.948864328048e-01 
+ 14 KSP Residual norm 5.737915009801e-02 
+Linear solve converged due to CONVERGED_RTOL iterations 14
+ Thermal Solve Time:   2.37322148360545     
+  1 EPS nconv=0 first unconverged value (error) 4.74005 (9.06910605e+01)
+  2 EPS nconv=0 first unconverged value (error) 0.0101501 (3.56792726e+02)
+  3 EPS nconv=0 first unconverged value (error) 0.00369806 (3.29156791e+02)
+  4 EPS nconv=0 first unconverged value (error) 0.00202413 (6.54123704e+02)
+  5 EPS nconv=0 first unconverged value (error) 0.00158133 (2.11099511e+02)
+  6 EPS nconv=0 first unconverged value (error) 0.00137069 (4.05940572e+02)
+  7 EPS nconv=0 first unconverged value (error) 0.00125849 (3.09332091e+02)
+  8 EPS nconv=0 first unconverged value (error) 0.00120088 (1.99559105e+02)
+  9 EPS nconv=0 first unconverged value (error) 0.00115935 (3.34359286e+02)
+ 10 EPS nconv=0 first unconverged value (error) 0.00113459 (1.30771788e+02)
+ 11 EPS nconv=0 first unconverged value (error) 0.00112979 (7.08911816e+01)
+ 12 EPS nconv=0 first unconverged value (error) 0.00112919 (1.70085749e+01)
+ 13 EPS nconv=0 first unconverged value (error) 0.00112908 (1.46589557e+01)
+ 14 EPS nconv=0 first unconverged value (error) 0.00112904 (7.33239376e+00)
+ 15 EPS nconv=0 first unconverged value (error) 0.001129 (1.26620868e+01)
+ 16 EPS nconv=0 first unconverged value (error) 0.00112896 (8.80958730e+00)
+ 17 EPS nconv=0 first unconverged value (error) 0.00112891 (1.86083029e+01)
+ 18 EPS nconv=0 first unconverged value (error) 0.00112888 (7.96635544e+00)
+ 19 EPS nconv=0 first unconverged value (error) 0.00112887 (7.30106257e+00)
+ 20 EPS nconv=0 first unconverged value (error) 0.00112886 (6.33751998e+00)
+ 21 EPS nconv=0 first unconverged value (error) 0.00112885 (3.60922521e+00)
+ 22 EPS nconv=0 first unconverged value (error) 0.00112885 (3.78698919e-01)
+ 23 EPS nconv=0 first unconverged value (error) 0.00112885 (3.07235553e-01)
+ 24 EPS nconv=0 first unconverged value (error) 0.00112885 (1.07084331e+00)
+ 25 EPS nconv=0 first unconverged value (error) 0.00112885 (4.21544337e-01)
+ 26 EPS nconv=0 first unconverged value (error) 0.00112885 (1.57882855e-01)
+ 27 EPS nconv=0 first unconverged value (error) 0.00112885 (1.64260744e-01)
+ 28 EPS nconv=0 first unconverged value (error) 0.00112885 (5.43755231e-02)
+ 29 EPS nconv=0 first unconverged value (error) 0.00112885 (6.26175912e-02)
+ 30 EPS nconv=0 first unconverged value (error) 0.00112885 (3.20372638e-02)
+ 31 EPS nconv=0 first unconverged value (error) 0.00112885 (1.71930443e-02)
+ 32 EPS nconv=0 first unconverged value (error) 0.00112885 (1.64297208e-02)
+ 33 EPS nconv=0 first unconverged value (error) 0.00112885 (6.00399710e-03)
+ 34 EPS nconv=0 first unconverged value (error) 0.00112885 (7.71754190e-03)
+ 35 EPS nconv=0 first unconverged value (error) 0.00112885 (4.61528854e-03)
+ 36 EPS nconv=0 first unconverged value (error) 0.00112885 (2.25786628e-03)
+ 37 EPS nconv=0 first unconverged value (error) 0.00112885 (1.92383817e-03)
+ 38 EPS nconv=2 first unconverged value (error) 0.0101596 (1.74535378e-03)
+ 39 EPS nconv=2 first unconverged value (error) 0.0101596 (1.00795883e-03)
+ 40 EPS nconv=2 first unconverged value (error) 0.0101596 (1.11248093e-03)
+ 41 EPS nconv=2 first unconverged value (error) 0.0101596 (1.17336939e-03)
+ 42 EPS nconv=3 first unconverged value (error) 0.0180616 (2.88244131e-03)
+ 43 EPS nconv=4 first unconverged value (error) 0.0282212 (3.23033245e-03)
+ 44 EPS nconv=4 first unconverged value (error) 0.0282212 (2.97912610e-03)
+ 45 EPS nconv=4 first unconverged value (error) 0.0282212 (2.97935646e-03)
+ 46 EPS nconv=4 first unconverged value (error) 0.0282212 (2.94393902e-03)
+ 47 EPS nconv=4 first unconverged value (error) 0.0282212 (2.91593470e-03)
+ 48 EPS nconv=4 first unconverged value (error) 0.0282212 (2.89696009e-03)
+ 49 EPS nconv=4 first unconverged value (error) 0.0282212 (2.88847270e-03)
+ 50 EPS nconv=4 first unconverged value (error) 0.0282212 (2.89166336e-03)
+ 51 EPS nconv=4 first unconverged value (error) 0.0282212 (2.90735331e-03)
+ 52 EPS nconv=4 first unconverged value (error) 0.0282212 (2.93590496e-03)
+ 53 EPS nconv=4 first unconverged value (error) 0.0282212 (2.97715388e-03)
+ 54 EPS nconv=4 first unconverged value (error) 0.0282212 (3.03037166e-03)
+ 55 EPS nconv=4 first unconverged value (error) 0.0282212 (3.09427686e-03)
+ 56 EPS nconv=4 first unconverged value (error) 0.0282212 (3.16710517e-03)
+ 57 EPS nconv=4 first unconverged value (error) 0.0282212 (3.24672232e-03)
+ 58 EPS nconv=4 first unconverged value (error) 0.0282212 (3.33074901e-03)
+ 59 EPS nconv=4 first unconverged value (error) 0.0282212 (3.41667799e-03)
+ 60 EPS nconv=4 first unconverged value (error) 0.0282212 (3.50197767e-03)
+ 61 EPS nconv=4 first unconverged value (error) 0.0282212 (3.58683759e-03)
+ 62 EPS nconv=4 first unconverged value (error) 0.0282212 (1.00197978e-03)
+ 63 EPS nconv=4 first unconverged value (error) 0.0282212 (1.13870895e-03)
+ 64 EPS nconv=4 first unconverged value (error) 0.0282212 (1.02526110e-03)
+ 65 EPS nconv=9 first unconverged value (error) 0.112886 (1.51617367e-02)
+ Linear eigensolve converged (9 eigenpairs) due to CONVERGED_TOL; iterations 65
+ solved eigenvalues: 
+  1.128848444981704E-003  0.000000000000000E+000
+  4.515393871547741E-003  0.000000000000000E+000
+  1.015963710396587E-002  0.000000000000000E+000
+  1.806158134645441E-002  0.000000000000000E+000
+  2.822123491771425E-002  0.000000000000000E+000
+  4.063861508626383E-002  0.000000000000000E+000
+  5.531375295209660E-002  0.000000000000000E+000
+  7.224669941517342E-002  0.000000000000000E+000
+  9.143753217040401E-002  0.000000000000000E+000
+ ===Writing Data === mode, num point        46541  num elem        10000
+ ===Writing Data done ===
+ ===Writing Data === mode, num point        46541  num elem        10000
+ ===Writing Data done ===
+ ===Writing Data === mode, num point        46541  num elem        10000
+ ===Writing Data done ===
+ ===Writing Data === mode, num point        46541  num elem        10000
+ ===Writing Data done ===
+ ===Writing Data === mode, num point        46541  num elem        10000
+ ===Writing Data done ===
+ ===Writing Data === mode, num point        46541  num elem        10000
+ ===Writing Data done ===
+ ===Writing Data === mode, num point        46541  num elem        10000
+ ===Writing Data done ===
+ ===Writing Data === mode, num point        46541  num elem        10000
+ ===Writing Data done ===
+ ===Writing Data === mode, num point        46541  num elem        10000
+ ===Writing Data done ===
+       46541 bcnverts
+ here
+ here
+ Elastic Setup Time:   4.46126134943188     
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+  0 KSP Residual norm 4.903913546125e-01 
+  1 KSP Residual norm 9.152445882139e-02 
+  2 KSP Residual norm 7.924841808235e-02 
+  3 KSP Residual norm 7.304125716688e-02 
+  4 KSP Residual norm 6.275477075782e-02 
+  5 KSP Residual norm 5.331873537741e-02 
+  6 KSP Residual norm 4.867906595047e-02 
+  7 KSP Residual norm 3.861862212636e-02 
+  8 KSP Residual norm 3.023810961818e-02 
+  9 KSP Residual norm 2.181269907371e-02 
+ 10 KSP Residual norm 1.779383449384e-02 
+ 11 KSP Residual norm 1.527139225295e-02 
+ 12 KSP Residual norm 1.314634047547e-02 
+ 13 KSP Residual norm 1.134108662896e-02 
+ 14 KSP Residual norm 1.075740152343e-02 
+ 15 KSP Residual norm 1.026021828498e-02 
+ 16 KSP Residual norm 9.810038526112e-03 
+ 17 KSP Residual norm 8.344751737376e-03 
+ 18 KSP Residual norm 8.218675056204e-03 
+ 19 KSP Residual norm 7.661496378453e-03 
+ 20 KSP Residual norm 7.385835469253e-03 
+ 21 KSP Residual norm 6.985694345760e-03 
+ 22 KSP Residual norm 5.675970660398e-03 
+ 23 KSP Residual norm 5.542942975049e-03 
+ 24 KSP Residual norm 5.199659164134e-03 
+ 25 KSP Residual norm 4.789213306615e-03 
+ 26 KSP Residual norm 4.742996377402e-03 
+ 27 KSP Residual norm 4.091888946804e-03 
+ 28 KSP Residual norm 3.943004169154e-03 
+ 29 KSP Residual norm 3.412953948294e-03 
+ 30 KSP Residual norm 2.362774403154e-03 
+ 31 KSP Residual norm 1.996838663452e-03 
+ 32 KSP Residual norm 1.468181438306e-03 
+ 33 KSP Residual norm 1.300964842577e-03 
+ 34 KSP Residual norm 9.624117248068e-04 
+ 35 KSP Residual norm 8.349543512745e-04 
+ 36 KSP Residual norm 6.232658412214e-04 
+ 37 KSP Residual norm 4.853954410600e-04 
+ 38 KSP Residual norm 2.049010879082e-04 
+ 39 KSP Residual norm 1.133275608245e-04 
+ 40 KSP Residual norm 5.663131785244e-05 
+ 41 KSP Residual norm 4.197602160415e-05 
+ 42 KSP Residual norm 4.000111020367e-05 
+ 43 KSP Residual norm 3.689856252082e-05 
+ 44 KSP Residual norm 3.464869780191e-05 
+ 45 KSP Residual norm 3.244878162670e-05 
+ 46 KSP Residual norm 2.707599478715e-05 
+ 47 KSP Residual norm 2.249024654040e-05 
+ 48 KSP Residual norm 2.136692890407e-05 
+ 49 KSP Residual norm 2.034870025311e-05 
+ 50 KSP Residual norm 2.001059137095e-05 
+ 51 KSP Residual norm 1.995730319838e-05 
+ 52 KSP Residual norm 1.853598428048e-05 
+ 53 KSP Residual norm 1.755220221793e-05 
+ 54 KSP Residual norm 1.680924379053e-05 
+ 55 KSP Residual norm 1.408270590379e-05 
+ 56 KSP Residual norm 1.347712523726e-05 
+ 57 KSP Residual norm 1.226285380248e-05 
+ 58 KSP Residual norm 1.179470835895e-05 
+ 59 KSP Residual norm 7.566936256228e-06 
+ 60 KSP Residual norm 5.709054421035e-06 
+ 61 KSP Residual norm 4.410339672743e-06 
+ 62 KSP Residual norm 3.247557980031e-06 
+ 63 KSP Residual norm 1.849144217918e-06 
+Linear solve converged due to CONVERGED_RTOL iterations 63
+ Elastic Solve Time:   19.9923945140690     
+  1 EPS nconv=0 first unconverged value (error) 3.63735e+11 (5.25526305e-03)
+  2 EPS nconv=0 first unconverged value (error) 4.29965e+09 (2.04517697e-02)
+  3 EPS nconv=0 first unconverged value (error) 9.89771e+08 (3.73662061e-02)
+  4 EPS nconv=0 first unconverged value (error) 4.05764e+08 (3.98306479e-02)
+  5 EPS nconv=0 first unconverged value (error) 2.34076e+08 (4.35884854e-02)
+  6 EPS nconv=0 first unconverged value (error) 1.38257e+08 (5.46710399e-02)
+  7 EPS nconv=0 first unconverged value (error) 9.37758e+07 (5.27609353e-02)
+  8 EPS nconv=0 first unconverged value (error) 7.45286e+07 (4.87313190e-02)
+  9 EPS nconv=0 first unconverged value (error) 6.26071e+07 (4.50082707e-02)
+ 10 EPS nconv=0 first unconverged value (error) 5.33293e+07 (5.07822341e-02)
+ 11 EPS nconv=0 first unconverged value (error) 4.65786e+07 (5.06391670e-02)
+ 12 EPS nconv=0 first unconverged value (error) 4.04533e+07 (5.63803421e-02)
+ 13 EPS nconv=0 first unconverged value (error) 3.54878e+07 (6.05399301e-02)
+ 14 EPS nconv=0 first unconverged value (error) 3.00243e+07 (7.16601577e-02)
+ 15 EPS nconv=0 first unconverged value (error) 2.56443e+07 (7.22042173e-02)
+ 16 EPS nconv=0 first unconverged value (error) 2.26824e+07 (6.62401854e-02)
+ 17 EPS nconv=0 first unconverged value (error) 2.08181e+07 (6.05588216e-02)
+ 18 EPS nconv=0 first unconverged value (error) 1.95159e+07 (5.58031283e-02)
+ 19 EPS nconv=0 first unconverged value (error) 1.83189e+07 (6.28857863e-02)
+ 20 EPS nconv=0 first unconverged value (error) 1.71519e+07 (5.90354402e-02)
+ 21 EPS nconv=0 first unconverged value (error) 2.15804e+06 (5.59916778e-01)
+ 22 EPS nconv=0 first unconverged value (error) 9.21329e+06 (5.62295157e-02)
+ 23 EPS nconv=0 first unconverged value (error) 8.68407e+06 (7.79917348e-02)
+ 24 EPS nconv=0 first unconverged value (error) 8.39022e+06 (5.60486327e-02)
+ 25 EPS nconv=0 first unconverged value (error) 8.15538e+06 (7.89090339e-02)
+ 26 EPS nconv=0 first unconverged value (error) 7.92575e+06 (5.33435664e-02)
+ 27 EPS nconv=0 first unconverged value (error) 7.77778e+06 (5.49955767e-02)
+ 28 EPS nconv=0 first unconverged value (error) 7.64668e+06 (5.35030541e-02)
+ 29 EPS nconv=0 first unconverged value (error) 7.54643e+06 (4.73520139e-02)
+ 30 EPS nconv=0 first unconverged value (error) 7.44681e+06 (5.59606862e-02)
+ 31 EPS nconv=0 first unconverged value (error) 7.33376e+06 (5.43776271e-02)
+ 32 EPS nconv=0 first unconverged value (error) 7.21048e+06 (6.16578450e-02)
+ 33 EPS nconv=0 first unconverged value (error) 7.07716e+06 (6.65366081e-02)
+ 34 EPS nconv=0 first unconverged value (error) 6.96113e+06 (5.75043615e-02)
+ 35 EPS nconv=0 first unconverged value (error) 6.86167e+06 (5.68764633e-02)
+ 36 EPS nconv=0 first unconverged value (error) 6.76907e+06 (5.66472267e-02)
+ 37 EPS nconv=0 first unconverged value (error) 6.67962e+06 (5.75913764e-02)
+ 38 EPS nconv=0 first unconverged value (error) 6.58526e+06 (6.42865690e-02)
+ 39 EPS nconv=0 first unconverged value (error) 6.49051e+06 (6.18765806e-02)
+ 40 EPS nconv=0 first unconverged value (error) 6.40264e+06 (6.06865096e-02)
+ 41 EPS nconv=0 first unconverged value (error) 4.12039e+06 (9.53229783e-02)
+ 42 EPS nconv=0 first unconverged value (error) 4.46495e+06 (4.33854532e-02)
+ 43 EPS nconv=0 first unconverged value (error) 4.41672e+06 (3.44822321e-02)
+ 44 EPS nconv=0 first unconverged value (error) 4.39393e+06 (2.78236493e-02)
+ 45 EPS nconv=0 first unconverged value (error) 4.37861e+06 (1.99938182e-02)
+ 46 EPS nconv=0 first unconverged value (error) 4.36835e+06 (2.24721481e-02)
+ 47 EPS nconv=0 first unconverged value (error) 4.35825e+06 (1.93196955e-02)
+ 48 EPS nconv=0 first unconverged value (error) 4.3488e+06 (1.84135137e-02)
+ 49 EPS nconv=0 first unconverged value (error) 4.34177e+06 (1.64583930e-02)
+ 50 EPS nconv=0 first unconverged value (error) 4.3363e+06 (1.37016752e-02)
+ 51 EPS nconv=0 first unconverged value (error) 4.33164e+06 (1.54105640e-02)
+ 52 EPS nconv=0 first unconverged value (error) 4.32608e+06 (1.52098197e-02)
+ 53 EPS nconv=0 first unconverged value (error) 4.31884e+06 (2.09952667e-02)
+ 54 EPS nconv=0 first unconverged value (error) 4.3091e+06 (1.89079339e-02)
+ 55 EPS nconv=0 first unconverged value (error) 4.30235e+06 (1.92293337e-02)
+ 56 EPS nconv=0 first unconverged value (error) 4.29118e+06 (2.56332541e-02)
+ 57 EPS nconv=0 first unconverged value (error) 4.26998e+06 (3.59383656e-02)
+ 58 EPS nconv=0 first unconverged value (error) 4.24672e+06 (3.23770353e-02)
+ 59 EPS nconv=0 first unconverged value (error) 4.22474e+06 (3.30362157e-02)
+ 60 EPS nconv=0 first unconverged value (error) 4.20029e+06 (3.74273154e-02)
+ 61 EPS nconv=0 first unconverged value (error) 4.14201e+06 (2.95529689e-02)
+ 62 EPS nconv=0 first unconverged value (error) 4.14085e+06 (1.88585315e-02)
+ 63 EPS nconv=0 first unconverged value (error) 4.13394e+06 (1.52628640e-02)
+ 64 EPS nconv=0 first unconverged value (error) 4.12862e+06 (1.28759289e-02)
+ 65 EPS nconv=0 first unconverged value (error) 4.12485e+06 (1.17682735e-02)
+ 66 EPS nconv=0 first unconverged value (error) 4.12268e+06 (7.49653765e-03)
+ 67 EPS nconv=0 first unconverged value (error) 4.12179e+06 (4.45666564e-03)
+ 68 EPS nconv=0 first unconverged value (error) 4.1214e+06 (3.41456353e-03)
+ 69 EPS nconv=0 first unconverged value (error) 4.12117e+06 (2.53255678e-03)
+ 70 EPS nconv=0 first unconverged value (error) 4.12106e+06 (2.16099578e-03)
+ 71 EPS nconv=0 first unconverged value (error) 4.12096e+06 (1.58140933e-03)
+ 72 EPS nconv=0 first unconverged value (error) 4.12091e+06 (1.28012952e-03)
+ 73 EPS nconv=0 first unconverged value (error) 4.12087e+06 (1.07104795e-03)
+ 74 EPS nconv=0 first unconverged value (error) 4.12085e+06 (1.00468868e-03)
+ 75 EPS nconv=1 first unconverged value (error) 4.12179e+06 (1.10979814e-03)
+ 76 EPS nconv=1 first unconverged value (error) 4.12176e+06 (1.06959800e-03)
+ 77 EPS nconv=1 first unconverged value (error) 4.12175e+06 (1.15190285e-03)
+ 78 EPS nconv=1 first unconverged value (error) 4.12173e+06 (1.26778159e-03)
+ 79 EPS nconv=1 first unconverged value (error) 4.12172e+06 (1.25369736e-03)
+ 80 EPS nconv=1 first unconverged value (error) 4.1217e+06 (1.59060716e-03)
+ 81 EPS nconv=1 first unconverged value (error) 4.12165e+06 (1.55391255e-03)
+ Linear eigensolve converged (20 eigenpairs) due to CONVERGED_TOL; iterations 82
+ solved eigenvalues: 
+   4120823.14877712       0.000000000000000E+000
+   4121619.82710277       0.000000000000000E+000
+   18974698.2925821       0.000000000000000E+000
+   24642824.3232565       0.000000000000000E+000
+   24644145.4153368       0.000000000000000E+000
+   74607065.5059831       0.000000000000000E+000
+   74609364.5194079       0.000000000000000E+000
+   75961815.8156268       0.000000000000000E+000
+   123548399.027156       0.000000000000000E+000
+   161978772.911717       0.000000000000000E+000
+   161995638.502063       0.000000000000000E+000
+   171120811.424866       0.000000000000000E+000
+   291614608.032549       0.000000000000000E+000
+   291729529.079179       0.000000000000000E+000
+   304623575.987871       0.000000000000000E+000
+   465934143.757437       0.000000000000000E+000
+   466626643.239719       0.000000000000000E+000
+   479602989.798370       0.000000000000000E+000
+   488166209.943994       0.000000000000000E+000
+   686226710.274540       0.000000000000000E+000
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data=== modeu,modev,modew,, num point        46541  num elem 
+       10000
+ ===Writing Data done ===
+ ===Writing Data === VMdebug, num point        46541  num elem        10000
+ ===Writing Data done ===
+ ===Writing Data Set=== size           15
+ u
+ v
+ w
+ e11
+ e22
+ e33
+ e23
+ e31
+ e12
+ s11
+ s22
+ s33
+ s23
+ s31
+ s12
+ VM
+ phi
+ total          17 , num point        46541  num elem        10000
+ ===Writing Data Successful===
+           0 done
+ TimeElapsed:   1138.91101409169     
+           1 done
+           2 done
+           3 done
+WARNING! There are options you set that were not used!
+WARNING! could be spelling mistake, etc!
+There is one unused database option. It is:
+Option left: name:-sub_pc_factor_levels value: 0

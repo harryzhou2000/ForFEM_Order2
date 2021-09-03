@@ -38,7 +38,7 @@ contains
         E_poly(1:5) = E_poly(1:5) * 1e3_8
         nu_poly_siz=1
         nu_poly(1:1) = 0.37_8
-        rho_uni = 8900e6_8
+        rho_uni = 8900e-12_8
     end subroutine
 
     subroutine set_expansion_properties(baseTemprature, materialExpasionRate)

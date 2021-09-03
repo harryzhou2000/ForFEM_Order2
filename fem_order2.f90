@@ -912,6 +912,7 @@ contains
         integer :: num_node_in_elem, i
         integer(kind = 4) :: aux_node(8)
         real(kind = 8) :: minCoord, maxCoord
+        real(8), allocatable :: outcache(:)
         ! integer rank, ierr
         ! call MPI_COMM_RANK(MPI_COMM_WORLD,rank, ierr)
         ! if (rank .ne. 0) then
@@ -923,6 +924,7 @@ contains
             stop
         end if
         print *,"===Writing Mesh, num point=== ", size(COORD,2), " num elem ", size(CELL)
+        allocate(outcache(size(COORD,2)))
 
         close(IOUT2)
         open(IOUT2, file = path , Form = 'Unformatted' , Access = "Stream", STATUS = "Replace",  Action = "Write")
@@ -952,6 +954,7 @@ contains
         write(IOUT2) 299.0_4 !zone
         write(IOUT2) 2_4, 2_4, 2_4 !print xyz as double
         write(IOUT2) 0_4, 0_4, -1_4 !nopassive nosharing nosharing
+        !print*,'here'
         minCoord = COORD(1, minloc(COORD(1,:),1))
         maxCoord = COORD(1, maxloc(COORD(1,:),1))
         write(IOUT2) minCoord, maxCoord
@@ -961,13 +964,23 @@ contains
         minCoord = COORD(3, minloc(COORD(3,:),1))
         maxCoord = COORD(3, maxloc(COORD(3,:),1))
         write(IOUT2) minCoord, maxCoord
-        write(IOUT2) COORD(1,:) !x
-        write(IOUT2) COORD(2,:) !y
-        write(IOUT2) COORD(3,:) !z
-
+        !print*,'here1.5'
+        outcache = COORD(1,:)
+        write(IOUT2) outcache !x
+        outcache = COORD(2,:)
+        write(IOUT2) outcache !y
+        outcache = COORD(3,:)
+        write(IOUT2) outcache !z
+        deallocate(outcache)
+        !print*,'here2'
         do i = 1,size(CELL)
             num_node_in_elem = size(CELL(i)%N)
+            !print*,num_node_in_elem
             select case(num_node_in_elem)
+            case(10) ! 10 node tet
+                aux_node(1:2) = CELL(i)%N(1:2)
+                aux_node(3:4) = CELL(i)%N(3)
+                aux_node(5:8) = CELL(i)%N(4)
             case(15) ! 15 node wedge
                 ! aux_node(1) = CELL(i)%N( 0+1)
                 ! aux_node(2) = CELL(i)%N( 5+1)
@@ -993,6 +1006,8 @@ contains
                 ! aux_node(8) = CELL(i)%N( 7+1)
                 aux_node = CELL(i)%N(1:8)
 
+            
+
             case default
                 print *, "Error::output_plt_mesh::Current Num Node ",num_node_in_elem
                 print *, "Not supported"
@@ -1002,6 +1017,7 @@ contains
             !print *, aux_node
         end do
         close(IOUT2)
+        
         print *,"===Writing Mesh Successful==="
     end subroutine
 
@@ -1022,6 +1038,7 @@ contains
         integer nmaxloc(1), nminloc(1)
         logical ifCell
         integer(4) CellInd
+        
         ! integer rank, ierr
         ! call MPI_COMM_RANK(MPI_COMM_WORLD,rank, ierr)
         ! if (rank .ne. 0) then
@@ -1037,7 +1054,7 @@ contains
             stop
         end if
         print *,"===Writing Data === ",DATAname,", num point ", size(COORD,2), " num elem ", size(CELL)
-
+        
         close(IOUT2)
         open(IOUT2, file = path , Form = 'Unformatted' , Access = "Stream", STATUS = "Replace",  Action = "Write")
         headhead = "#!TDV112"
@@ -1082,6 +1099,7 @@ contains
         endif
 
         close(IOUT2)
+        
         print*,'===Writing Data done ==='
     end subroutine
 

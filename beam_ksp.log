@@ -1,0 +1,138 @@
+ readbc           1                             BASE
+ readbc           2                             FREE
+ readbc           3                              TOP
+ ===Writing Mesh, num point===        46541  num elem        10000
+ ===Writing Mesh Successful===
+ ===Writing Data === cell_volume, num point        46541  num elem        10000
+ ===Writing Data done ===
+           0 LOCALDOFS       11378
+           1 LOCALDOFS       11678
+           2 LOCALDOFS       11935
+           3 LOCALDOFS       11550
+ ===Writing Data === partition, num point        46541  num elem        10000
+ ===Writing Data done ===
+ Max          80
+ Min          19       46541           1
+       11678       11678
+       11935       11935
+       11550       11550
+       11378       11378
+ ng         292
+ ng         700
+ ng         309
+ ng         681
+ Partition Time:  0.313977270707255     
+       46541 bcnverts
+ Thermal Setup Time:  0.644198010377295     
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+  0 KSP Residual norm 3.873496696502e+04 
+  1 KSP Residual norm 2.911820222913e+03 
+  2 KSP Residual norm 1.893008705958e+03 
+  3 KSP Residual norm 1.333511099500e+03 
+  4 KSP Residual norm 1.215709395938e+03 
+  5 KSP Residual norm 9.515680704090e+02 
+  6 KSP Residual norm 7.039461804309e+02 
+  7 KSP Residual norm 3.323702335716e+02 
+  8 KSP Residual norm 1.706162640351e+02 
+  9 KSP Residual norm 1.064095607730e+02 
+ 10 KSP Residual norm 7.730152446682e+01 
+ 11 KSP Residual norm 5.870119340994e+01 
+ 12 KSP Residual norm 7.512978551452e+00 
+ 13 KSP Residual norm 2.948864328048e-01 
+ 14 KSP Residual norm 5.737915009801e-02 
+Linear solve converged due to CONVERGED_RTOL iterations 14
+ Thermal Solve Time:   1.39813140906335     
+       46541 bcnverts
+ here
+ here
+ Elastic Setup Time:   4.18979202303308     
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+  0 KSP Residual norm 4.218088000215e+01 
+  1 KSP Residual norm 1.145070802612e+01 
+  2 KSP Residual norm 1.674110789567e+00 
+  3 KSP Residual norm 9.395633350305e-01 
+  4 KSP Residual norm 7.717653954763e-01 
+  5 KSP Residual norm 7.340806022183e-01 
+  6 KSP Residual norm 5.199199103315e-01 
+  7 KSP Residual norm 4.100454331557e-01 
+  8 KSP Residual norm 3.559050729399e-01 
+  9 KSP Residual norm 3.088670781994e-01 
+ 10 KSP Residual norm 2.694158790760e-01 
+ 11 KSP Residual norm 1.916514653100e-01 
+ 12 KSP Residual norm 1.058325012459e-01 
+ 13 KSP Residual norm 7.530024524732e-02 
+ 14 KSP Residual norm 6.938639828340e-02 
+ 15 KSP Residual norm 4.975175765673e-02 
+ 16 KSP Residual norm 3.763068189222e-02 
+ 17 KSP Residual norm 3.269651839353e-02 
+ 18 KSP Residual norm 2.614330770342e-02 
+ 19 KSP Residual norm 2.174548283814e-02 
+ 20 KSP Residual norm 2.044750590169e-02 
+ 21 KSP Residual norm 1.883669853871e-02 
+ 22 KSP Residual norm 1.748459415902e-02 
+ 23 KSP Residual norm 1.418450515746e-02 
+ 24 KSP Residual norm 1.077480972542e-02 
+ 25 KSP Residual norm 9.752589296305e-03 
+ 26 KSP Residual norm 8.457567995926e-03 
+ 27 KSP Residual norm 8.341232175548e-03 
+ 28 KSP Residual norm 8.071861420724e-03 
+ 29 KSP Residual norm 7.788227398507e-03 
+ 30 KSP Residual norm 7.581542153999e-03 
+ 31 KSP Residual norm 7.220206483749e-03 
+ 32 KSP Residual norm 6.555363905398e-03 
+ 33 KSP Residual norm 4.302745236879e-03 
+ 34 KSP Residual norm 3.349308942490e-03 
+ 35 KSP Residual norm 2.415571324990e-03 
+ 36 KSP Residual norm 2.170028957585e-03 
+ 37 KSP Residual norm 1.685123873631e-03 
+ 38 KSP Residual norm 1.251425808096e-03 
+ 39 KSP Residual norm 9.823542919036e-04 
+ 40 KSP Residual norm 6.512765024255e-04 
+ 41 KSP Residual norm 2.315194120520e-04 
+ 42 KSP Residual norm 1.308363524972e-04 
+Linear solve converged due to CONVERGED_RTOL iterations 42
+ Elastic Solve Time:   15.6204882242091     
+ ===Writing Data === VMdebug, num point        46541  num elem        10000
+ ===Writing Data done ===
+ ===Writing Data Set=== size           15
+ u
+ v
+ w
+ e11
+ e22
+ e33
+ e23
+ e31
+ e12
+ s11
+ s22
+ s33
+ s23
+ s31
+ s12
+ VM
+ phi
+ total          17 , num point        46541  num elem        10000
+ ===Writing Data Successful===
+           0 done
+ TimeElapsed:   42.2932602740839     
+           1 done
+           2 done
+           3 done
+WARNING! There are options you set that were not used!
+WARNING! could be spelling mistake, etc!
+There are 8 unused database options. They are:
+Option left: name:-eps_converged_reason (no value)
+Option left: name:-eps_max_it value: 10000
+Option left: name:-eps_monitor (no value)
+Option left: name:-eps_ncv value: 20
+Option left: name:-eps_nev value: 5
+Option left: name:-eps_tol value: 1e-3
+Option left: name:-eps_type value: rqcg
+Option left: name:-sub_pc_factor_levels value: 0

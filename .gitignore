@@ -1,4 +1,4 @@
-untitled.lpk
+*.lpk
 a.exe
 *.exe
 out.txt
@@ -7,3 +7,6 @@ out*.txt
 *.plt
 *.mod
 lib*.a
+*.zip
+*.neu
+*.png

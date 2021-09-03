@@ -1,0 +1,29 @@
+
+log_chol_elas=getKSPlog('BEAM_chol_elas_KSP.log');
+log_icc_elas=getKSPlog('BEAM_icc_elas_KSP.log');
+
+figure(1);clf;
+hold on;
+plot(log_chol_elas/log_chol_elas(1))
+plot(log_icc_elas/log_chol_elas(1))
+set(gca,'YScale','log');
+xlabel('iteration');
+title('unconverged relative residual');
+legend('elastic rqcg','elastic lobpcg');
+grid on;
+
+
+
+log_chol_ther=getKSPlog('BEAM_chol_ther_KSP.log');
+log_icc_ther=getKSPlog('BEAM_icc_ther_KSP.log');
+
+figure(1);clf;
+hold on;
+plot(log_chol_ther/log_ther_elas(1))
+plot(log_icc_ther/log_ther_elas(1))
+set(gca,'YScale','log');
+xlabel('iteration');
+title('unconverged relative residual');
+legend('thermal rqcg','elastic lobpcg');
+grid on;
+

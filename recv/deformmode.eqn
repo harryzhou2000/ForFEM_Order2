@@ -1,0 +1,9 @@
+#!MC 1410
+$!AlterData 
+  Equation = '{RATIO}=100'
+$!AlterData 
+  Equation = '{X}={X}+{RATIO}*{MODEU}'
+$!AlterData 
+  Equation = '{Y}={Y}+{RATIO}*{MODEV}'
+$!AlterData 
+  Equation = '{Z}={Z}+{RATIO}*{MODEW}'

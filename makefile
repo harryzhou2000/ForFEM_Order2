@@ -37,6 +37,8 @@ main_cooler.exe: main_cooler.f90 readgrid2.f90 ${FortranTargets}
 	${FC} $^  -o $@  ${Flags}  ${Libs}
 main_beam.exe: main_beam.f90 readgrid2.f90 ${FortranTargets}
 	${FC} $^  -o $@  ${Flags}  ${Libs}
+main_grid.exe: main_grid.f90 readgrid2.f90 ${FortranTargets}
+	${FC} $^  -o $@  ${Flags}  ${Libs}
 
 test_petsc.exe: test_petsc.f90
 	${FC}  test_petsc.f90 ${Flags} ${Libs} -o test_petsc.exe
