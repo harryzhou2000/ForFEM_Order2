@@ -1,0 +1,765 @@
+ readbc           1                             BASE
+ readbc           2                              AIR
+ ===Writing Mesh, num point===       439157  num elem       221707
+ ===Writing Mesh Successful===
+ here1
+ ===Writing Data === cell_volume, num point       439157  num elem       221707
+ ===Writing Data done ===
+ here2
+           0 LOCALDOFS       18553
+          12 LOCALDOFS       17967
+          13 LOCALDOFS       18674
+          14 LOCALDOFS       18335
+          16 LOCALDOFS       18127
+          18 LOCALDOFS       18249
+          21 LOCALDOFS       17889
+          22 LOCALDOFS       18825
+           1 LOCALDOFS       18106
+           3 LOCALDOFS       18480
+           4 LOCALDOFS       18453
+           5 LOCALDOFS       18087
+           7 LOCALDOFS       18336
+           8 LOCALDOFS       18083
+           9 LOCALDOFS       18777
+          10 LOCALDOFS       17960
+          11 LOCALDOFS       18280
+          15 LOCALDOFS       18607
+          19 LOCALDOFS       18740
+          20 LOCALDOFS       17822
+          23 LOCALDOFS       17786
+          17 LOCALDOFS       18624
+           2 LOCALDOFS       18353
+           6 LOCALDOFS       18044
+ ===Writing Data === partition, num point       439157  num elem       221707
+ ===Writing Data done ===
+ Max         104
+ Min           9      439157           3
+       18106       18106
+       18353       18353
+       18480       18480
+       18453       18453
+       18087       18087
+       18044       18044
+       18336       18336
+       18083       18083
+       18777       18777
+       17960       17960
+       18280       18280
+       17967       17967
+       18674       18674
+       18335       18335
+       18607       18607
+       18127       18127
+       18624       18624
+       18249       18249
+       17822       17822
+       17889       17889
+       18825       18825
+       17786       17786
+       18553       18553
+       18740       18740
+ ng         515
+ ng         716
+ ng         748
+ ng         525
+ ng         544
+ ng         439
+ ng         681
+ ng         508
+ ng         508
+ ng         416
+ ng         746
+ ng         567
+ ng         346
+ ng         463
+ ng         476
+ ng         659
+ ng         625
+ ng         561
+ ng         425
+ ng         612
+ ng         791
+ ng         672
+ ng         480
+ ng         623
+ Partition Time:   12.8770877205170     
+      439157 bcnverts
+ Thermal Setup Time:   8.16012543459783     
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+ Thermal Symmetric Check:  T
+  0 KSP Residual norm 2.915721806187e+05 
+  1 KSP Residual norm 2.693120404064e+04 
+  2 KSP Residual norm 3.527254122157e+03 
+  3 KSP Residual norm 1.518696119182e+03 
+  4 KSP Residual norm 4.710444435093e+02 
+  5 KSP Residual norm 1.725441284108e+02 
+  6 KSP Residual norm 3.848789605919e+01 
+  7 KSP Residual norm 1.018479532491e+01 
+  8 KSP Residual norm 2.216975135714e+00 
+  9 KSP Residual norm 4.840805826937e-01 
+Linear solve converged due to CONVERGED_RTOL iterations 9
+ Thermal Solve Time:   7.29908908096058     
+      439157 bcnverts
+ here
+ here
+ Elastic Setup Time:   36.6157762785560     
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+ Elastic Symmetric Check:  F
+  0 KSP Residual norm 3.035100439486e+02 
+  1 KSP Residual norm 4.610262078052e+01 
+  2 KSP Residual norm 1.920067078767e+01 
+  3 KSP Residual norm 1.744772801472e+01 
+  4 KSP Residual norm 1.367866204711e+01 
+  5 KSP Residual norm 1.268716972243e+01 
+  6 KSP Residual norm 1.116658487974e+01 
+  7 KSP Residual norm 1.012812783907e+01 
+  8 KSP Residual norm 8.708395252460e+00 
+  9 KSP Residual norm 8.143128441980e+00 
+ 10 KSP Residual norm 7.905251663897e+00 
+ 11 KSP Residual norm 6.641647127101e+00 
+ 12 KSP Residual norm 5.817205106906e+00 
+ 13 KSP Residual norm 5.358855422188e+00 
+ 14 KSP Residual norm 4.667077809536e+00 
+ 15 KSP Residual norm 4.176495838414e+00 
+ 16 KSP Residual norm 3.678264252007e+00 
+ 17 KSP Residual norm 3.238660332872e+00 
+ 18 KSP Residual norm 2.823830609190e+00 
+ 19 KSP Residual norm 2.508318347971e+00 
+ 20 KSP Residual norm 2.307653752186e+00 
+ 21 KSP Residual norm 2.138240120095e+00 
+ 22 KSP Residual norm 1.949827895619e+00 
+ 23 KSP Residual norm 1.860245517894e+00 
+ 24 KSP Residual norm 1.768071486551e+00 
+ 25 KSP Residual norm 1.676397143365e+00 
+ 26 KSP Residual norm 1.627841915778e+00 
+ 27 KSP Residual norm 1.555692768316e+00 
+ 28 KSP Residual norm 1.521508374265e+00 
+ 29 KSP Residual norm 1.454915113131e+00 
+ 30 KSP Residual norm 1.420328712604e+00 
+ 31 KSP Residual norm 1.373476702407e+00 
+ 32 KSP Residual norm 1.356437046949e+00 
+ 33 KSP Residual norm 1.320839931323e+00 
+ 34 KSP Residual norm 1.289771595405e+00 
+ 35 KSP Residual norm 1.263066685248e+00 
+ 36 KSP Residual norm 1.232023848671e+00 
+ 37 KSP Residual norm 1.200202853221e+00 
+ 38 KSP Residual norm 1.180464389213e+00 
+ 39 KSP Residual norm 1.173456379878e+00 
+ 40 KSP Residual norm 1.138132408267e+00 
+ 41 KSP Residual norm 1.131171102662e+00 
+ 42 KSP Residual norm 1.110933785000e+00 
+ 43 KSP Residual norm 1.098142289549e+00 
+ 44 KSP Residual norm 1.077773164824e+00 
+ 45 KSP Residual norm 1.054423477053e+00 
+ 46 KSP Residual norm 1.037664513913e+00 
+ 47 KSP Residual norm 1.014890695129e+00 
+ 48 KSP Residual norm 9.956683380032e-01 
+ 49 KSP Residual norm 9.736116773613e-01 
+ 50 KSP Residual norm 9.454354573287e-01 
+ 51 KSP Residual norm 9.246051246871e-01 
+ 52 KSP Residual norm 8.892318215700e-01 
+ 53 KSP Residual norm 8.731556894018e-01 
+ 54 KSP Residual norm 8.310057820418e-01 
+ 55 KSP Residual norm 7.969198191185e-01 
+ 56 KSP Residual norm 7.683356588406e-01 
+ 57 KSP Residual norm 7.363480454136e-01 
+ 58 KSP Residual norm 7.097073678702e-01 
+ 59 KSP Residual norm 6.712488452582e-01 
+ 60 KSP Residual norm 6.412796398156e-01 
+ 61 KSP Residual norm 6.112456571153e-01 
+ 62 KSP Residual norm 5.672354244500e-01 
+ 63 KSP Residual norm 5.268575196270e-01 
+ 64 KSP Residual norm 4.910582368565e-01 
+ 65 KSP Residual norm 4.612145497559e-01 
+ 66 KSP Residual norm 4.242798969206e-01 
+ 67 KSP Residual norm 3.934181126637e-01 
+ 68 KSP Residual norm 3.630436798288e-01 
+ 69 KSP Residual norm 3.394138390784e-01 
+ 70 KSP Residual norm 3.124615949536e-01 
+ 71 KSP Residual norm 2.866441170068e-01 
+ 72 KSP Residual norm 2.688484547115e-01 
+ 73 KSP Residual norm 2.476205756271e-01 
+ 74 KSP Residual norm 2.334817313248e-01 
+ 75 KSP Residual norm 2.205226533896e-01 
+ 76 KSP Residual norm 2.033322424820e-01 
+ 77 KSP Residual norm 1.911730030455e-01 
+ 78 KSP Residual norm 1.803407281011e-01 
+ 79 KSP Residual norm 1.656555865786e-01 
+ 80 KSP Residual norm 1.529594907550e-01 
+ 81 KSP Residual norm 1.418309281450e-01 
+ 82 KSP Residual norm 1.319705483403e-01 
+ 83 KSP Residual norm 1.230077753245e-01 
+ 84 KSP Residual norm 1.158187655451e-01 
+ 85 KSP Residual norm 1.086992717889e-01 
+ 86 KSP Residual norm 1.020185157072e-01 
+ 87 KSP Residual norm 9.691189585563e-02 
+ 88 KSP Residual norm 9.099025713565e-02 
+ 89 KSP Residual norm 8.687956334263e-02 
+ 90 KSP Residual norm 8.204941447440e-02 
+ 91 KSP Residual norm 7.746993098789e-02 
+ 92 KSP Residual norm 7.385727720068e-02 
+ 93 KSP Residual norm 6.895427819179e-02 
+ 94 KSP Residual norm 6.463571763562e-02 
+ 95 KSP Residual norm 6.023090023419e-02 
+ 96 KSP Residual norm 5.726738215281e-02 
+ 97 KSP Residual norm 5.368081924014e-02 
+ 98 KSP Residual norm 5.015141724982e-02 
+ 99 KSP Residual norm 4.810805045192e-02 
+100 KSP Residual norm 4.599176783389e-02 
+101 KSP Residual norm 4.391418255554e-02 
+102 KSP Residual norm 4.261821619009e-02 
+103 KSP Residual norm 4.054114508699e-02 
+104 KSP Residual norm 3.932813641825e-02 
+105 KSP Residual norm 3.802976206224e-02 
+106 KSP Residual norm 3.621798112310e-02 
+107 KSP Residual norm 3.470914644356e-02 
+108 KSP Residual norm 3.370548893229e-02 
+109 KSP Residual norm 3.223526492905e-02 
+110 KSP Residual norm 3.076946079083e-02 
+111 KSP Residual norm 2.965711513144e-02 
+112 KSP Residual norm 2.818951241413e-02 
+113 KSP Residual norm 2.710946359370e-02 
+114 KSP Residual norm 2.615440593592e-02 
+115 KSP Residual norm 2.534061639639e-02 
+116 KSP Residual norm 2.445047310806e-02 
+117 KSP Residual norm 2.369804098320e-02 
+118 KSP Residual norm 2.279714708867e-02 
+119 KSP Residual norm 2.204490969182e-02 
+120 KSP Residual norm 2.141801990748e-02 
+121 KSP Residual norm 2.137885983783e-02 
+122 KSP Residual norm 2.116571484606e-02 
+123 KSP Residual norm 2.081575994768e-02 
+124 KSP Residual norm 2.050878792600e-02 
+125 KSP Residual norm 2.018299922465e-02 
+126 KSP Residual norm 1.975728246393e-02 
+127 KSP Residual norm 1.950609222426e-02 
+128 KSP Residual norm 1.887700194018e-02 
+129 KSP Residual norm 1.824652773964e-02 
+130 KSP Residual norm 1.790242972207e-02 
+131 KSP Residual norm 1.730974849121e-02 
+132 KSP Residual norm 1.690125787129e-02 
+133 KSP Residual norm 1.661293569879e-02 
+134 KSP Residual norm 1.610601153691e-02 
+135 KSP Residual norm 1.564703611560e-02 
+136 KSP Residual norm 1.517286786458e-02 
+137 KSP Residual norm 1.485455968004e-02 
+138 KSP Residual norm 1.438898391103e-02 
+139 KSP Residual norm 1.398329727578e-02 
+140 KSP Residual norm 1.349983644397e-02 
+141 KSP Residual norm 1.288385788698e-02 
+142 KSP Residual norm 1.223646185420e-02 
+143 KSP Residual norm 1.155844530481e-02 
+144 KSP Residual norm 1.111542009110e-02 
+145 KSP Residual norm 1.055345659439e-02 
+146 KSP Residual norm 1.015042342893e-02 
+147 KSP Residual norm 9.825081514058e-03 
+148 KSP Residual norm 9.356301663676e-03 
+149 KSP Residual norm 9.054567092196e-03 
+150 KSP Residual norm 8.717744624426e-03 
+151 KSP Residual norm 8.313355438866e-03 
+152 KSP Residual norm 8.059742698668e-03 
+153 KSP Residual norm 7.731806618985e-03 
+154 KSP Residual norm 7.421874628521e-03 
+155 KSP Residual norm 7.223613598639e-03 
+156 KSP Residual norm 6.988810800117e-03 
+157 KSP Residual norm 6.763440477148e-03 
+158 KSP Residual norm 6.548041338863e-03 
+159 KSP Residual norm 6.299641915493e-03 
+160 KSP Residual norm 6.134431578804e-03 
+161 KSP Residual norm 5.951513089208e-03 
+162 KSP Residual norm 5.858250966325e-03 
+163 KSP Residual norm 5.708500876860e-03 
+164 KSP Residual norm 5.474623714583e-03 
+165 KSP Residual norm 5.372730020094e-03 
+166 KSP Residual norm 5.175711908412e-03 
+167 KSP Residual norm 5.093974960624e-03 
+168 KSP Residual norm 4.953815290290e-03 
+169 KSP Residual norm 4.808792329125e-03 
+170 KSP Residual norm 4.722431176834e-03 
+171 KSP Residual norm 4.646596381207e-03 
+172 KSP Residual norm 4.552548407761e-03 
+173 KSP Residual norm 4.511630627562e-03 
+174 KSP Residual norm 4.492144125083e-03 
+175 KSP Residual norm 4.469688807352e-03 
+176 KSP Residual norm 4.447216942112e-03 
+177 KSP Residual norm 4.432349097314e-03 
+178 KSP Residual norm 4.420841499874e-03 
+179 KSP Residual norm 4.378547331454e-03 
+180 KSP Residual norm 4.365864421734e-03 
+181 KSP Residual norm 4.332564391880e-03 
+182 KSP Residual norm 4.318762017691e-03 
+183 KSP Residual norm 4.312015229764e-03 
+184 KSP Residual norm 4.310638609487e-03 
+185 KSP Residual norm 4.294877934064e-03 
+186 KSP Residual norm 4.293941035943e-03 
+187 KSP Residual norm 4.266837629904e-03 
+188 KSP Residual norm 4.247405764193e-03 
+189 KSP Residual norm 4.238954641643e-03 
+190 KSP Residual norm 4.230092955868e-03 
+191 KSP Residual norm 4.222923830640e-03 
+192 KSP Residual norm 4.197812583496e-03 
+193 KSP Residual norm 4.190302496058e-03 
+194 KSP Residual norm 4.179108660334e-03 
+195 KSP Residual norm 4.175637995493e-03 
+196 KSP Residual norm 4.164409604992e-03 
+197 KSP Residual norm 4.162012360801e-03 
+198 KSP Residual norm 4.119061485966e-03 
+199 KSP Residual norm 4.104802583715e-03 
+200 KSP Residual norm 4.065294313423e-03 
+201 KSP Residual norm 4.049682329587e-03 
+202 KSP Residual norm 4.026533683173e-03 
+203 KSP Residual norm 4.002573585586e-03 
+204 KSP Residual norm 3.961198770478e-03 
+205 KSP Residual norm 3.944718486513e-03 
+206 KSP Residual norm 3.913396963860e-03 
+207 KSP Residual norm 3.887648605338e-03 
+208 KSP Residual norm 3.856676468374e-03 
+209 KSP Residual norm 3.846870909997e-03 
+210 KSP Residual norm 3.802434533843e-03 
+211 KSP Residual norm 3.770122464885e-03 
+212 KSP Residual norm 3.744926194999e-03 
+213 KSP Residual norm 3.710042678297e-03 
+214 KSP Residual norm 3.694605807263e-03 
+215 KSP Residual norm 3.665897904657e-03 
+216 KSP Residual norm 3.648672500888e-03 
+217 KSP Residual norm 3.642241833747e-03 
+218 KSP Residual norm 3.614168049176e-03 
+219 KSP Residual norm 3.606452869984e-03 
+220 KSP Residual norm 3.590054956870e-03 
+221 KSP Residual norm 3.572226156445e-03 
+222 KSP Residual norm 3.557571655554e-03 
+223 KSP Residual norm 3.557008182654e-03 
+224 KSP Residual norm 3.541031766977e-03 
+225 KSP Residual norm 3.533752369204e-03 
+226 KSP Residual norm 3.526605769449e-03 
+227 KSP Residual norm 3.525749538935e-03 
+228 KSP Residual norm 3.522431781998e-03 
+229 KSP Residual norm 3.518540708115e-03 
+230 KSP Residual norm 3.518386372084e-03 
+231 KSP Residual norm 3.514440904139e-03 
+232 KSP Residual norm 3.511346112869e-03 
+233 KSP Residual norm 3.510401196444e-03 
+234 KSP Residual norm 3.503141945555e-03 
+235 KSP Residual norm 3.500513133089e-03 
+236 KSP Residual norm 3.491539919618e-03 
+237 KSP Residual norm 3.489816597123e-03 
+238 KSP Residual norm 3.478427734102e-03 
+239 KSP Residual norm 3.478141884445e-03 
+240 KSP Residual norm 3.456640238915e-03 
+241 KSP Residual norm 3.456591262425e-03 
+242 KSP Residual norm 3.456415211891e-03 
+243 KSP Residual norm 3.455390755685e-03 
+244 KSP Residual norm 3.454968486289e-03 
+245 KSP Residual norm 3.453949083550e-03 
+246 KSP Residual norm 3.453002989939e-03 
+247 KSP Residual norm 3.451286656167e-03 
+248 KSP Residual norm 3.450341208939e-03 
+249 KSP Residual norm 3.445971463117e-03 
+250 KSP Residual norm 3.443538064670e-03 
+251 KSP Residual norm 3.438349662225e-03 
+252 KSP Residual norm 3.432141703868e-03 
+253 KSP Residual norm 3.426816779111e-03 
+254 KSP Residual norm 3.418595905813e-03 
+255 KSP Residual norm 3.412299248776e-03 
+256 KSP Residual norm 3.404638391289e-03 
+257 KSP Residual norm 3.397389244372e-03 
+258 KSP Residual norm 3.388631729804e-03 
+259 KSP Residual norm 3.381314095718e-03 
+260 KSP Residual norm 3.375721553164e-03 
+261 KSP Residual norm 3.372866274043e-03 
+262 KSP Residual norm 3.367458472026e-03 
+263 KSP Residual norm 3.358748243545e-03 
+264 KSP Residual norm 3.353239438035e-03 
+265 KSP Residual norm 3.349675244360e-03 
+266 KSP Residual norm 3.345807063374e-03 
+267 KSP Residual norm 3.343445937656e-03 
+268 KSP Residual norm 3.339388975941e-03 
+269 KSP Residual norm 3.336895124925e-03 
+270 KSP Residual norm 3.336352142692e-03 
+271 KSP Residual norm 3.331404574365e-03 
+272 KSP Residual norm 3.329636304111e-03 
+273 KSP Residual norm 3.323720861014e-03 
+274 KSP Residual norm 3.318278262056e-03 
+275 KSP Residual norm 3.315504902878e-03 
+276 KSP Residual norm 3.312889366115e-03 
+277 KSP Residual norm 3.301294582803e-03 
+278 KSP Residual norm 3.295707540878e-03 
+279 KSP Residual norm 3.287917904525e-03 
+280 KSP Residual norm 3.283225501511e-03 
+281 KSP Residual norm 3.272654845670e-03 
+282 KSP Residual norm 3.265536583712e-03 
+283 KSP Residual norm 3.257675440201e-03 
+284 KSP Residual norm 3.246429663161e-03 
+285 KSP Residual norm 3.230611680592e-03 
+286 KSP Residual norm 3.228974547083e-03 
+287 KSP Residual norm 3.211085566338e-03 
+288 KSP Residual norm 3.207892060088e-03 
+289 KSP Residual norm 3.183048487237e-03 
+290 KSP Residual norm 3.169001159646e-03 
+291 KSP Residual norm 3.160520398385e-03 
+292 KSP Residual norm 3.151322910237e-03 
+293 KSP Residual norm 3.144110546344e-03 
+294 KSP Residual norm 3.136794763225e-03 
+295 KSP Residual norm 3.121399871243e-03 
+296 KSP Residual norm 3.109395803528e-03 
+297 KSP Residual norm 3.093271579756e-03 
+298 KSP Residual norm 3.076924694777e-03 
+299 KSP Residual norm 3.066026461757e-03 
+300 KSP Residual norm 3.059493277888e-03 
+301 KSP Residual norm 3.048001125827e-03 
+302 KSP Residual norm 3.033151704875e-03 
+303 KSP Residual norm 3.018481054045e-03 
+304 KSP Residual norm 3.010170470507e-03 
+305 KSP Residual norm 2.993931126413e-03 
+306 KSP Residual norm 2.979565272824e-03 
+307 KSP Residual norm 2.971520025103e-03 
+308 KSP Residual norm 2.953500756443e-03 
+309 KSP Residual norm 2.945359623341e-03 
+310 KSP Residual norm 2.927035486270e-03 
+311 KSP Residual norm 2.904388710954e-03 
+312 KSP Residual norm 2.882872754421e-03 
+313 KSP Residual norm 2.848345488782e-03 
+314 KSP Residual norm 2.821195246205e-03 
+315 KSP Residual norm 2.784203116819e-03 
+316 KSP Residual norm 2.740650770454e-03 
+317 KSP Residual norm 2.704772849940e-03 
+318 KSP Residual norm 2.661551955251e-03 
+319 KSP Residual norm 2.615341048466e-03 
+320 KSP Residual norm 2.593784261634e-03 
+321 KSP Residual norm 2.558423578046e-03 
+322 KSP Residual norm 2.530248513278e-03 
+323 KSP Residual norm 2.509290983183e-03 
+324 KSP Residual norm 2.474883396321e-03 
+325 KSP Residual norm 2.457697642471e-03 
+326 KSP Residual norm 2.430332185739e-03 
+327 KSP Residual norm 2.428012375829e-03 
+328 KSP Residual norm 2.415019507230e-03 
+329 KSP Residual norm 2.405555109662e-03 
+330 KSP Residual norm 2.384832128465e-03 
+331 KSP Residual norm 2.369397063178e-03 
+332 KSP Residual norm 2.342792216521e-03 
+333 KSP Residual norm 2.326702494758e-03 
+334 KSP Residual norm 2.309892177722e-03 
+335 KSP Residual norm 2.279001269041e-03 
+336 KSP Residual norm 2.257073157691e-03 
+337 KSP Residual norm 2.228604937817e-03 
+338 KSP Residual norm 2.211882288797e-03 
+339 KSP Residual norm 2.183832100458e-03 
+340 KSP Residual norm 2.137197872055e-03 
+341 KSP Residual norm 2.081279200194e-03 
+342 KSP Residual norm 2.048786570848e-03 
+343 KSP Residual norm 2.013099837875e-03 
+344 KSP Residual norm 1.982050182537e-03 
+345 KSP Residual norm 1.965791260685e-03 
+346 KSP Residual norm 1.910530864048e-03 
+347 KSP Residual norm 1.894126755029e-03 
+348 KSP Residual norm 1.868311001539e-03 
+349 KSP Residual norm 1.844026792973e-03 
+350 KSP Residual norm 1.822050898420e-03 
+351 KSP Residual norm 1.801226792433e-03 
+352 KSP Residual norm 1.744925865545e-03 
+353 KSP Residual norm 1.721202631490e-03 
+354 KSP Residual norm 1.672455037924e-03 
+355 KSP Residual norm 1.637699071340e-03 
+356 KSP Residual norm 1.589451561168e-03 
+357 KSP Residual norm 1.565598192256e-03 
+358 KSP Residual norm 1.501113079848e-03 
+Linear solve converged due to CONVERGED_RTOL iterations 358
+ Elastic Solve Time:   87.4216945939143     
+  1 EPS nconv=0 first unconverged value (error) 7.94479e+11 (2.24905400e-03)
+  2 EPS nconv=0 first unconverged value (error) 2.28471e+11 (1.76592254e-03)
+  3 EPS nconv=0 first unconverged value (error) 2.09406e+11 (1.86894077e-03)
+  4 EPS nconv=0 first unconverged value (error) 1.99095e+11 (1.77515666e-03)
+  5 EPS nconv=0 first unconverged value (error) 1.97325e+11 (1.74477639e-03)
+  6 EPS nconv=0 first unconverged value (error) 1.95966e+11 (1.74728761e-03)
+  7 EPS nconv=0 first unconverged value (error) 1.94845e+11 (1.76982991e-03)
+  8 EPS nconv=0 first unconverged value (error) 1.93884e+11 (1.79834612e-03)
+  9 EPS nconv=0 first unconverged value (error) 1.93035e+11 (1.82394281e-03)
+ 10 EPS nconv=0 first unconverged value (error) 1.92248e+11 (1.84253617e-03)
+ 11 EPS nconv=0 first unconverged value (error) 1.91453e+11 (1.85239933e-03)
+ 12 EPS nconv=0 first unconverged value (error) 1.9053e+11 (1.85159430e-03)
+ 13 EPS nconv=0 first unconverged value (error) 1.89215e+11 (1.83556260e-03)
+ 14 EPS nconv=0 first unconverged value (error) 1.8681e+11 (1.79997897e-03)
+ 15 EPS nconv=0 first unconverged value (error) 1.8124e+11 (1.78705051e-03)
+ 16 EPS nconv=0 first unconverged value (error) 1.75681e+11 (1.82142210e-03)
+ 17 EPS nconv=0 first unconverged value (error) 1.75024e+11 (1.83173756e-03)
+ 18 EPS nconv=0 first unconverged value (error) 1.74799e+11 (1.83512770e-03)
+ 19 EPS nconv=0 first unconverged value (error) 1.74771e+11 (1.83480799e-03)
+ 20 EPS nconv=0 first unconverged value (error) 1.7477e+11 (1.83511190e-03)
+ 21 EPS nconv=0 first unconverged value (error) 1.70009e+11 (1.71803119e-03)
+ 22 EPS nconv=0 first unconverged value (error) 1.69997e+11 (1.71656295e-03)
+ 23 EPS nconv=0 first unconverged value (error) 1.69949e+11 (1.71538386e-03)
+ 24 EPS nconv=0 first unconverged value (error) 1.69937e+11 (1.71526760e-03)
+ 25 EPS nconv=0 first unconverged value (error) 1.69932e+11 (1.71527315e-03)
+ 26 EPS nconv=0 first unconverged value (error) 1.69916e+11 (1.71554549e-03)
+ 27 EPS nconv=0 first unconverged value (error) 1.69905e+11 (1.71545202e-03)
+ 28 EPS nconv=0 first unconverged value (error) 1.69902e+11 (1.71568978e-03)
+ 29 EPS nconv=0 first unconverged value (error) 1.699e+11 (1.71550730e-03)
+ 30 EPS nconv=0 first unconverged value (error) 1.69899e+11 (1.71543223e-03)
+ 31 EPS nconv=0 first unconverged value (error) 1.69899e+11 (1.71539415e-03)
+ 32 EPS nconv=0 first unconverged value (error) 1.69899e+11 (1.71537462e-03)
+ 33 EPS nconv=0 first unconverged value (error) 1.69899e+11 (1.71536746e-03)
+ 34 EPS nconv=0 first unconverged value (error) 1.69899e+11 (1.71536772e-03)
+ 35 EPS nconv=0 first unconverged value (error) 1.69899e+11 (1.71536743e-03)
+ 36 EPS nconv=0 first unconverged value (error) 1.69899e+11 (1.71536092e-03)
+ 37 EPS nconv=0 first unconverged value (error) 1.69899e+11 (1.71535071e-03)
+ 38 EPS nconv=0 first unconverged value (error) 1.69899e+11 (1.71535133e-03)
+ 39 EPS nconv=0 first unconverged value (error) 1.69899e+11 (1.71536669e-03)
+ 40 EPS nconv=0 first unconverged value (error) 1.69899e+11 (1.71538866e-03)
+ 41 EPS nconv=0 first unconverged value (error) 1.66863e+11 (1.90350972e-03)
+ 42 EPS nconv=0 first unconverged value (error) 1.66851e+11 (1.90387220e-03)
+ 43 EPS nconv=0 first unconverged value (error) 1.6684e+11 (1.90460739e-03)
+ 44 EPS nconv=0 first unconverged value (error) 1.66828e+11 (1.90507147e-03)
+ 45 EPS nconv=0 first unconverged value (error) 1.66816e+11 (1.90453211e-03)
+ 46 EPS nconv=0 first unconverged value (error) 1.66809e+11 (1.90378514e-03)
+ 47 EPS nconv=0 first unconverged value (error) 1.66806e+11 (1.90360825e-03)
+ 48 EPS nconv=0 first unconverged value (error) 1.66804e+11 (1.90370854e-03)
+ 49 EPS nconv=0 first unconverged value (error) 1.66803e+11 (1.90380046e-03)
+ 50 EPS nconv=0 first unconverged value (error) 1.66802e+11 (1.90391104e-03)
+ 51 EPS nconv=0 first unconverged value (error) 1.66801e+11 (1.90393222e-03)
+ 52 EPS nconv=0 first unconverged value (error) 1.668e+11 (1.90391319e-03)
+ 53 EPS nconv=0 first unconverged value (error) 1.668e+11 (1.90392050e-03)
+ 54 EPS nconv=0 first unconverged value (error) 1.668e+11 (1.90391426e-03)
+ 55 EPS nconv=0 first unconverged value (error) 1.668e+11 (1.90392259e-03)
+ 56 EPS nconv=0 first unconverged value (error) 1.668e+11 (1.90392777e-03)
+ 57 EPS nconv=0 first unconverged value (error) 1.66799e+11 (1.90391376e-03)
+ 58 EPS nconv=0 first unconverged value (error) 1.66799e+11 (1.90388818e-03)
+ 59 EPS nconv=0 first unconverged value (error) 1.66799e+11 (1.90388761e-03)
+ 60 EPS nconv=0 first unconverged value (error) 1.66799e+11 (1.90388714e-03)
+ 61 EPS nconv=0 first unconverged value (error) 1.66755e+11 (1.90305564e-03)
+ 62 EPS nconv=0 first unconverged value (error) 1.6676e+11 (1.90302920e-03)
+ 63 EPS nconv=0 first unconverged value (error) 1.6676e+11 (1.90303184e-03)
+ 64 EPS nconv=0 first unconverged value (error) 1.6676e+11 (1.90303227e-03)
+ 65 EPS nconv=0 first unconverged value (error) 1.6676e+11 (1.90303236e-03)
+ 66 EPS nconv=0 first unconverged value (error) 1.6676e+11 (1.90303238e-03)
+ 67 EPS nconv=0 first unconverged value (error) 1.6676e+11 (1.90303238e-03)
+ 68 EPS nconv=0 first unconverged value (error) 1.6676e+11 (1.90303238e-03)
+ 69 EPS nconv=0 first unconverged value (error) 1.6676e+11 (1.90303239e-03)
+ 70 EPS nconv=0 first unconverged value (error) 1.6676e+11 (1.90303239e-03)
+ 71 EPS nconv=0 first unconverged value (error) 1.6676e+11 (1.90303239e-03)
+ 72 EPS nconv=0 first unconverged value (error) 1.6676e+11 (1.90303239e-03)
+ 73 EPS nconv=0 first unconverged value (error) 1.6676e+11 (1.90303239e-03)
+ 74 EPS nconv=0 first unconverged value (error) 1.6676e+11 (1.90303239e-03)
+ 75 EPS nconv=0 first unconverged value (error) 1.6676e+11 (1.90303239e-03)
+ 76 EPS nconv=0 first unconverged value (error) 1.6676e+11 (1.90303239e-03)
+ 77 EPS nconv=0 first unconverged value (error) 1.6676e+11 (1.90303239e-03)
+ 78 EPS nconv=0 first unconverged value (error) 1.6676e+11 (1.90303239e-03)
+ 79 EPS nconv=0 first unconverged value (error) 1.6676e+11 (1.90303239e-03)
+ 80 EPS nconv=0 first unconverged value (error) 1.6676e+11 (1.90303239e-03)
+ 81 EPS nconv=0 first unconverged value (error) 1.66473e+11 (1.92527290e-03)
+ 82 EPS nconv=0 first unconverged value (error) 1.66397e+11 (1.92446208e-03)
+ 83 EPS nconv=0 first unconverged value (error) 1.66278e+11 (1.92396760e-03)
+ 84 EPS nconv=0 first unconverged value (error) 1.66186e+11 (1.92713691e-03)
+ 85 EPS nconv=0 first unconverged value (error) 1.66131e+11 (1.92907354e-03)
+ 86 EPS nconv=0 first unconverged value (error) 1.6607e+11 (1.92887915e-03)
+ 87 EPS nconv=0 first unconverged value (error) 1.66032e+11 (1.92792404e-03)
+ 88 EPS nconv=0 first unconverged value (error) 1.65979e+11 (1.92701478e-03)
+ 89 EPS nconv=0 first unconverged value (error) 1.65867e+11 (1.92596043e-03)
+ 90 EPS nconv=0 first unconverged value (error) 1.65802e+11 (1.92663365e-03)
+ 91 EPS nconv=0 first unconverged value (error) 1.65773e+11 (1.92787551e-03)
+ 92 EPS nconv=0 first unconverged value (error) 1.65759e+11 (1.92856826e-03)
+ 93 EPS nconv=0 first unconverged value (error) 1.65752e+11 (1.92877684e-03)
+ 94 EPS nconv=0 first unconverged value (error) 1.65744e+11 (1.92882647e-03)
+ 95 EPS nconv=0 first unconverged value (error) 1.65735e+11 (1.92839067e-03)
+ 96 EPS nconv=0 first unconverged value (error) 1.65734e+11 (1.92840445e-03)
+ 97 EPS nconv=0 first unconverged value (error) 1.65734e+11 (1.92841155e-03)
+ 98 EPS nconv=0 first unconverged value (error) 1.65734e+11 (1.92841626e-03)
+ 99 EPS nconv=0 first unconverged value (error) 1.65734e+11 (1.92841991e-03)
+100 EPS nconv=0 first unconverged value (error) 1.65734e+11 (1.92842298e-03)
+101 EPS nconv=0 first unconverged value (error) 1.62418e+11 (2.11671500e-03)
+102 EPS nconv=0 first unconverged value (error) 1.61014e+11 (2.13123187e-03)
+103 EPS nconv=0 first unconverged value (error) 1.60826e+11 (2.13396317e-03)
+104 EPS nconv=0 first unconverged value (error) 1.60518e+11 (2.13714823e-03)
+105 EPS nconv=0 first unconverged value (error) 1.60359e+11 (2.14006232e-03)
+106 EPS nconv=0 first unconverged value (error) 1.60191e+11 (2.14307858e-03)
+107 EPS nconv=0 first unconverged value (error) 1.601e+11 (2.14167883e-03)
+108 EPS nconv=0 first unconverged value (error) 1.60088e+11 (2.14103973e-03)
+109 EPS nconv=0 first unconverged value (error) 1.60085e+11 (2.14080852e-03)
+110 EPS nconv=0 first unconverged value (error) 1.60082e+11 (2.14057879e-03)
+111 EPS nconv=0 first unconverged value (error) 1.60079e+11 (2.14034191e-03)
+112 EPS nconv=0 first unconverged value (error) 1.60075e+11 (2.14003578e-03)
+113 EPS nconv=0 first unconverged value (error) 1.60072e+11 (2.13969720e-03)
+114 EPS nconv=0 first unconverged value (error) 1.6007e+11 (2.13940115e-03)
+115 EPS nconv=0 first unconverged value (error) 1.60069e+11 (2.13910605e-03)
+116 EPS nconv=0 first unconverged value (error) 1.60068e+11 (2.13881374e-03)
+117 EPS nconv=0 first unconverged value (error) 1.60067e+11 (2.13862388e-03)
+118 EPS nconv=0 first unconverged value (error) 1.60066e+11 (2.13842228e-03)
+119 EPS nconv=0 first unconverged value (error) 1.60065e+11 (2.13825347e-03)
+120 EPS nconv=0 first unconverged value (error) 1.60065e+11 (2.13813582e-03)
+121 EPS nconv=0 first unconverged value (error) 1.59498e+11 (2.13482803e-03)
+122 EPS nconv=0 first unconverged value (error) 1.59326e+11 (2.14148495e-03)
+123 EPS nconv=0 first unconverged value (error) 1.59134e+11 (2.14759481e-03)
+124 EPS nconv=0 first unconverged value (error) 1.59084e+11 (2.14831726e-03)
+125 EPS nconv=0 first unconverged value (error) 1.5906e+11 (2.14833974e-03)
+126 EPS nconv=0 first unconverged value (error) 1.5905e+11 (2.14792868e-03)
+127 EPS nconv=0 first unconverged value (error) 1.59049e+11 (2.14762846e-03)
+128 EPS nconv=0 first unconverged value (error) 1.59048e+11 (2.14733951e-03)
+129 EPS nconv=0 first unconverged value (error) 1.59047e+11 (2.14699674e-03)
+130 EPS nconv=0 first unconverged value (error) 1.59045e+11 (2.14660293e-03)
+131 EPS nconv=0 first unconverged value (error) 1.59045e+11 (2.14640393e-03)
+132 EPS nconv=0 first unconverged value (error) 1.59044e+11 (2.14629115e-03)
+133 EPS nconv=0 first unconverged value (error) 1.59044e+11 (2.14623971e-03)
+134 EPS nconv=0 first unconverged value (error) 1.59044e+11 (2.14622439e-03)
+135 EPS nconv=0 first unconverged value (error) 1.59044e+11 (2.14622315e-03)
+136 EPS nconv=0 first unconverged value (error) 1.59044e+11 (2.14622372e-03)
+137 EPS nconv=0 first unconverged value (error) 1.59044e+11 (2.14621993e-03)
+138 EPS nconv=0 first unconverged value (error) 1.59044e+11 (2.14619912e-03)
+139 EPS nconv=0 first unconverged value (error) 1.59044e+11 (2.14614240e-03)
+140 EPS nconv=0 first unconverged value (error) 1.59043e+11 (2.14598645e-03)
+141 EPS nconv=0 first unconverged value (error) 1.58637e+11 (2.14522106e-03)
+142 EPS nconv=0 first unconverged value (error) 1.5855e+11 (2.14795115e-03)
+143 EPS nconv=0 first unconverged value (error) 1.58498e+11 (2.15018961e-03)
+144 EPS nconv=0 first unconverged value (error) 1.58459e+11 (2.15161475e-03)
+145 EPS nconv=0 first unconverged value (error) 1.58456e+11 (2.15150243e-03)
+146 EPS nconv=0 first unconverged value (error) 1.58456e+11 (2.15156526e-03)
+147 EPS nconv=0 first unconverged value (error) 1.58456e+11 (2.15155029e-03)
+148 EPS nconv=0 first unconverged value (error) 1.58456e+11 (2.15155709e-03)
+149 EPS nconv=0 first unconverged value (error) 1.58456e+11 (2.15155214e-03)
+150 EPS nconv=0 first unconverged value (error) 1.58456e+11 (2.15155764e-03)
+151 EPS nconv=0 first unconverged value (error) 1.58456e+11 (2.15154794e-03)
+152 EPS nconv=0 first unconverged value (error) 1.58456e+11 (2.15157098e-03)
+153 EPS nconv=0 first unconverged value (error) 1.58454e+11 (2.15166176e-03)
+154 EPS nconv=0 first unconverged value (error) 1.58453e+11 (2.15172182e-03)
+155 EPS nconv=0 first unconverged value (error) 1.58451e+11 (2.15178785e-03)
+156 EPS nconv=0 first unconverged value (error) 1.58449e+11 (2.15188748e-03)
+157 EPS nconv=0 first unconverged value (error) 1.58447e+11 (2.15203646e-03)
+158 EPS nconv=0 first unconverged value (error) 1.58444e+11 (2.15224974e-03)
+159 EPS nconv=0 first unconverged value (error) 1.5844e+11 (2.15254556e-03)
+160 EPS nconv=0 first unconverged value (error) 1.58436e+11 (2.15294009e-03)
+161 EPS nconv=0 first unconverged value (error) 1.58124e+11 (2.15830974e-03)
+162 EPS nconv=0 first unconverged value (error) 1.58087e+11 (2.15885522e-03)
+163 EPS nconv=0 first unconverged value (error) 1.58058e+11 (2.15927863e-03)
+164 EPS nconv=0 first unconverged value (error) 1.58041e+11 (2.15945073e-03)
+165 EPS nconv=0 first unconverged value (error) 1.58031e+11 (2.15958379e-03)
+166 EPS nconv=0 first unconverged value (error) 1.58029e+11 (2.15951333e-03)
+167 EPS nconv=0 first unconverged value (error) 1.58029e+11 (2.15954441e-03)
+168 EPS nconv=0 first unconverged value (error) 1.58029e+11 (2.15954326e-03)
+169 EPS nconv=0 first unconverged value (error) 1.58029e+11 (2.15954379e-03)
+170 EPS nconv=0 first unconverged value (error) 1.58029e+11 (2.15954305e-03)
+171 EPS nconv=0 first unconverged value (error) 1.58029e+11 (2.15954771e-03)
+172 EPS nconv=0 first unconverged value (error) 1.58028e+11 (2.15958805e-03)
+173 EPS nconv=0 first unconverged value (error) 1.58027e+11 (2.15965152e-03)
+174 EPS nconv=0 first unconverged value (error) 1.58026e+11 (2.15968826e-03)
+175 EPS nconv=0 first unconverged value (error) 1.58025e+11 (2.15970287e-03)
+176 EPS nconv=0 first unconverged value (error) 1.58024e+11 (2.15971666e-03)
+177 EPS nconv=0 first unconverged value (error) 1.58023e+11 (2.15973947e-03)
+178 EPS nconv=0 first unconverged value (error) 1.5802e+11 (2.15978699e-03)
+179 EPS nconv=0 first unconverged value (error) 1.58017e+11 (2.15985481e-03)
+180 EPS nconv=0 first unconverged value (error) 1.58013e+11 (2.15993244e-03)
+181 EPS nconv=0 first unconverged value (error) 1.5794e+11 (2.16138996e-03)
+182 EPS nconv=0 first unconverged value (error) 1.57887e+11 (2.16220390e-03)
+183 EPS nconv=0 first unconverged value (error) 1.57873e+11 (2.16235421e-03)
+184 EPS nconv=0 first unconverged value (error) 1.57843e+11 (2.16239989e-03)
+185 EPS nconv=0 first unconverged value (error) 1.57829e+11 (2.16242054e-03)
+186 EPS nconv=0 first unconverged value (error) 1.57796e+11 (2.16268639e-03)
+187 EPS nconv=0 first unconverged value (error) 1.57762e+11 (2.16282009e-03)
+188 EPS nconv=0 first unconverged value (error) 1.57742e+11 (2.16301538e-03)
+189 EPS nconv=0 first unconverged value (error) 1.57709e+11 (2.16322134e-03)
+190 EPS nconv=0 first unconverged value (error) 1.57683e+11 (2.16340112e-03)
+191 EPS nconv=0 first unconverged value (error) 1.57648e+11 (2.16378126e-03)
+192 EPS nconv=0 first unconverged value (error) 1.57611e+11 (2.16417981e-03)
+193 EPS nconv=0 first unconverged value (error) 1.5761e+11 (2.16416614e-03)
+194 EPS nconv=0 first unconverged value (error) 1.57606e+11 (2.16426542e-03)
+195 EPS nconv=0 first unconverged value (error) 1.57604e+11 (2.16426860e-03)
+196 EPS nconv=0 first unconverged value (error) 1.57603e+11 (2.16433570e-03)
+197 EPS nconv=0 first unconverged value (error) 1.57596e+11 (2.16447498e-03)
+198 EPS nconv=0 first unconverged value (error) 1.57578e+11 (2.16464497e-03)
+199 EPS nconv=0 first unconverged value (error) 1.57552e+11 (2.16491009e-03)
+200 EPS nconv=0 first unconverged value (error) 1.57502e+11 (2.16545186e-03)
+ Linear eigensolve did not converge due to DIVERGED_ITS; iterations 200
+ solved eigenvalues: 
+ ===Writing Data === VMdebug, num point       439157  num elem       221707
+ ===Writing Data done ===
+ ===Writing Data Set=== size           15
+ u
+ v
+ w
+ e11
+ e22
+ e33
+ e23
+ e31
+ e12
+ s11
+ s22
+ s33
+ s23
+ s31
+ s12
+ VM
+ phi
+ total          17 , num point       439157  num elem       221707
+ ===Writing Data Successful===
+           0 done
+ TimeElapsed:   944.055213924362     
+           1 done
+           2 done
+           3 done
+           4 done
+           5 done
+           6 done
+           7 done
+           8 done
+           9 done
+          10 done
+          11 done
+          12 done
+          13 done
+          14 done
+          16 done
+          17 done
+          18 done
+          19 done
+          20 done
+          21 done
+          22 done
+          23 done
+          15 done
+WARNING! There are options you set that were not used!
+WARNING! could be spelling mistake, etc!
+There is one unused database option. It is:
+Option left: name:-sub_pc_factor_levels value: 0

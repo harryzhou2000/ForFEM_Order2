@@ -1,5 +1,5 @@
 
-OptFlag=-g -O3
+OptFlag=-g
 PetscPath=${PETSC_DIR}/include
 PetscBuildPath=${PETSC_DIR}/${PETSC_ARCH}/include
 SlepcPath=${SLEPC_DIR}/include
