@@ -1,7 +1,5 @@
-
-
-% fin = fopen('mat1.txt');
-fin = fopen('cooler_elas_A.dump');
+function mat = f_get_petsc_ascii_mat(name)
+fin = fopen(name);
 
 siz = 0;
 is = nan(100,1);
@@ -12,7 +10,10 @@ while(~feof(fin))
     row = regexp(line,'row *(\d+):','tokens');
     if(numel(row)>0)
         row = str2double(row{1})+1;
-        pairs = regexp(line,'\((\d+), *([+-]?\d*\.?\d+[eE]?[+-]?\d*)\)','tokens');
+        if(row == 779)
+           fprintf('found\n'); 
+        end
+        pairs = regexp(line,'\((\d+), *([+-]?\d*\.?\d*[eE]?[+-]?\d*)\)','tokens');
         for i = 1:numel(pairs)
             col = str2double(pairs{i}{1})+1;
             val = str2double(pairs{i}{2});
@@ -25,11 +26,6 @@ while(~feof(fin))
             fprintf('\tASCII read: Row: %d Size: %d\n',row, siz);
         end
     end
-    
 end
-
-
 fclose(fin);
-
 mat = sparse(is,js,vs);
-spy(mat)

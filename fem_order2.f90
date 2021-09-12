@@ -270,8 +270,8 @@ contains
         real(8) :: my_coord(3)
 
         !hammer 3rd tetra int
-        real(8) :: tet_as(3,5)
-        real(8) :: tet_ws(5)
+        real(8) :: tet_as(3,13)
+        real(8) :: tet_ws(13)
 
         !hammer 5th tirangle int
         real(8), parameter :: tri_a1 = 0.0597158717_8
@@ -295,26 +295,45 @@ contains
         integer i, j, k, l, intpoint_id
 
         !hammer tet3 organization
-        tet_as(1,1) = 1.0_8/4.0_8
-        tet_as(2,1) = 1.0_8/4.0_8
-        tet_as(3,1) = 1.0_8/4.0_8
-        tet_as(1,2) = 1.0_8/6.0_8
-        tet_as(2,2) = 1.0_8/6.0_8
-        tet_as(3,2) = 1.0_8/6.0_8
-        tet_as(1,3) = 1.0_8/2.0_8
-        tet_as(2,3) = 1.0_8/6.0_8
-        tet_as(3,3) = 1.0_8/6.0_8
-        tet_as(1,4) = 1.0_8/6.0_8
-        tet_as(2,4) = 1.0_8/2.0_8
-        tet_as(3,4) = 1.0_8/6.0_8
-        tet_as(1,5) = 1.0_8/6.0_8
-        tet_as(2,5) = 1.0_8/6.0_8
-        tet_as(3,5) = 1.0_8/2.0_8
-        tet_ws(1) = -4.0_8/ 5.0_8  /6.0_8
-        tet_ws(2) =  9.0_8/20.0_8  /6.0_8
-        tet_ws(3) =  9.0_8/20.0_8  /6.0_8
-        tet_ws(4) =  9.0_8/20.0_8  /6.0_8
-        tet_ws(5) =  9.0_8/20.0_8  /6.0_8
+        ! tet_as(1,1) = 1.0_8/4.0_8
+        ! tet_as(2,1) = 1.0_8/4.0_8
+        ! tet_as(3,1) = 1.0_8/4.0_8
+        ! tet_as(1,2) = 1.0_8/6.0_8
+        ! tet_as(2,2) = 1.0_8/6.0_8
+        ! tet_as(3,2) = 1.0_8/6.0_8
+        ! tet_as(1,3) = 1.0_8/2.0_8
+        ! tet_as(2,3) = 1.0_8/6.0_8
+        ! tet_as(3,3) = 1.0_8/6.0_8
+        ! tet_as(1,4) = 1.0_8/6.0_8
+        ! tet_as(2,4) = 1.0_8/2.0_8
+        ! tet_as(3,4) = 1.0_8/6.0_8
+        ! tet_as(1,5) = 1.0_8/6.0_8
+        ! tet_as(2,5) = 1.0_8/6.0_8
+        ! tet_as(3,5) = 1.0_8/2.0_8
+        ! tet_ws(1) = -4.0_8/ 5.0_8  /6.0_8
+        ! tet_ws(2) =  9.0_8/20.0_8  /6.0_8
+        ! tet_ws(3) =  9.0_8/20.0_8  /6.0_8
+        ! tet_ws(4) =  9.0_8/20.0_8  /6.0_8
+        ! tet_ws(5) =  9.0_8/20.0_8  /6.0_8
+
+        ! tet3
+        tet_as(1,1) = 0.58541020_8
+        tet_as(2,1) = 0.13819660_8
+        tet_as(3,1) = 0.13819660_8
+        tet_as(1,2) = 0.13819660_8
+        tet_as(2,2) = 0.58541020_8
+        tet_as(3,2) = 0.13819660_8
+        tet_as(1,3) = 0.13819660_8
+        tet_as(2,3) = 0.13819660_8
+        tet_as(3,3) = 0.58541020_8
+        tet_as(1,4) = 0.13819660_8
+        tet_as(2,4) = 0.13819660_8
+        tet_as(3,4) = 0.13819660_8
+
+        tet_ws(1) = 0.25_8  /6.0_8
+        tet_ws(2) = 0.25_8  /6.0_8
+        tet_ws(3) = 0.25_8  /6.0_8
+        tet_ws(4) = 0.25_8  /6.0_8
 
         !hammer tri5 points organization
         tri_as(1, 1) = 1.0/3.0; tri_as(2, 1) = 1.0/3.0
@@ -576,7 +595,7 @@ contains
         ! 10 node tetra
         ! intpoints and wight
         elem_lib(i)%num_node = 10
-        elem_lib(i)%num_intpoint = 5
+        elem_lib(i)%num_intpoint = 4
         allocate (elem_lib(i)%coord_intpoint(3, elem_lib(i)%num_intpoint))
         allocate (elem_lib(i)%coord_intweight(elem_lib(i)%num_intpoint))
         elem_lib(i)%coord_intpoint = tet_as; 
@@ -1006,8 +1025,6 @@ contains
                 ! aux_node(8) = CELL(i)%N( 7+1)
                 aux_node = CELL(i)%N(1:8)
 
-            
-
             case default
                 print *, "Error::output_plt_mesh::Current Num Node ",num_node_in_elem
                 print *, "Not supported"
@@ -1017,7 +1034,7 @@ contains
             !print *, aux_node
         end do
         close(IOUT2)
-        
+
         print *,"===Writing Mesh Successful==="
     end subroutine
 
@@ -1038,7 +1055,7 @@ contains
         integer nmaxloc(1), nminloc(1)
         logical ifCell
         integer(4) CellInd
-        
+
         ! integer rank, ierr
         ! call MPI_COMM_RANK(MPI_COMM_WORLD,rank, ierr)
         ! if (rank .ne. 0) then
@@ -1054,7 +1071,7 @@ contains
             stop
         end if
         print *,"===Writing Data === ",DATAname,", num point ", size(COORD,2), " num elem ", size(CELL)
-        
+
         close(IOUT2)
         open(IOUT2, file = path , Form = 'Unformatted' , Access = "Stream", STATUS = "Replace",  Action = "Write")
         headhead = "#!TDV112"
@@ -1099,7 +1116,7 @@ contains
         endif
 
         close(IOUT2)
-        
+
         print*,'===Writing Data done ==='
     end subroutine
 
@@ -2206,7 +2223,7 @@ contains
                     nodeDiag = cellMat(in,in)
                     cellMat(in,:) = 0.0_8
                     cellMat(:,in) = 0.0_8
-                    cellMat(in,in) = nodeDiag * 1e-100_8! to make the freq of the mode very large but M is still positive-definite
+                    cellMat(in,in) = nodeDiag * 1.0_8! to make the freq of the mode very large but M is still positive-definite
                     touchedMat = .true.
                 endif
             enddo
@@ -2611,7 +2628,20 @@ contains
             !                    12*num_node,&
             !                    ierr &
             !                    )
-            ! print*,'Eig check',evimag(1:num_node*3)
+            ! print*,'Eig check',evreal(1:num_node*3)
+            ! do in = 1,num_node*3
+            !     if(evreal(in)<-1e-13)then
+            !         print*,'evcheckfail'
+            !         stop
+            !     endif
+            ! enddo
+            ! do in = 1,num_node*3
+            !     if(cellDOFs(in)==778)then
+            !         print*,'found DOF fill ',cellDOFs(in),cellMat(in,in)
+            !         stop
+            !     endif
+            ! enddo
+            cellMat = 0.5 * (cellMat + transpose(cellMat))
             call MatSetValues(Aelas, num_node*3, cellDOFs, num_node*3, cellDOFs, cellMat, ADD_VALUES, ierr)
             !print*,i
             !print*,cellMat
@@ -2677,7 +2707,7 @@ contains
                     nodeDiag = cellMat(in,in)
                     cellMat(in,:) = 0.0_8
                     cellMat(:,in) = 0.0_8
-                    cellMat(in,in) = nodeDiag*1e-100_8 ! to make the freq of the mode very large but M is still positive-definite
+                    cellMat(in,in) = nodeDiag*1.0e-20_8 ! to make the freq of the mode very large but M is still positive-definite
                     touchedMat = .true.
                 endif
             enddo
@@ -2685,9 +2715,14 @@ contains
             ! if(rank == 0) then
             !     print*,'CELLDOFS',cellDOFs
             ! endif
-            ! print*,'Sym check',norm2(cellMat-transpose(cellMat))
+            !print*,'Sym check',norm2(cellMat-transpose(cellMat))
             ! print*,'cellmat'
             ! call printMat(cellMat)
+            ! do in = 1,num_node*3
+            !     nodeDiag = sum(cellMat(in,:))
+            !     cellMat(in,:) = 0.0_8
+            !     cellMat(in,in) = nodeDiag
+            ! enddo
             ! call dgeev        ('N',&
             !                    'N',&
             !                    num_node*3,&
@@ -2704,6 +2739,13 @@ contains
             !                    ierr &
             !                    )
             ! print*,'Eig check',evreal(1:num_node*3)
+            ! do in = 1,num_node*3
+            !     if(evreal(in)< -1e-10_8)then
+            !         print*,'evcheckfail'
+            !         stop
+            !     endif
+            ! enddo
+            
             call MatSetValues(Melas, num_node*3, cellDOFs, num_node*3, cellDOFs, cellMat, ADD_VALUES, ierr)
             !print*,i
             !print*,cellMat
@@ -2876,25 +2918,60 @@ contains
     subroutine SolveElasticity_Initialize !after setting up
         PetscInt ierr
         PetscBool flag
-        call MatIsSymmetric(Aelas,1e-10_8,flag, ierr)
-        print*,"Elastic Symmetric Check: ",flag
+        ! call MatView(Melas,PETSC_VIEWER_STDOUT_WORLD, ierr)
+        !call MatIsSymmetric(Aelas,1e-10_8,flag, ierr)
+        !print*,"Elastic Symmetric Check: ",flag
         call KSPCreate(MPI_COMM_WORLD, KSPelas, ierr)
         call KSPSetOperators(KSPelas, Aelas, Aelas, ierr)
         call KSPSetFromOptions(KSPelas, ierr)
     end subroutine
 
     subroutine SolveElasticMode_Initialize
-        PetscInt ierr
+        PetscInt ierr, nev, ncv, mpd, i, idof
+        PetscRandom rdm
+        PetscScalar,pointer :: pdofFixDist(:), pGuess(:)
+        Vec,allocatable::guesses(:)
+        call PetscRandomCreate(MPI_COMM_WORLD,rdm,ierr)
+        call PetscRandomSetType(rdm, "rand", ierr)
+        call PetscRandomSetInterval(rdm,1._8-1.0_8,1._8, ierr)
+
         call EPSCreate(MPI_COMM_WORLD,EPSelas,ierr)
         call EPSSetOperators(EPSelas,Aelas,Melas,ierr)
         call EPSSetProblemType(EPSelas,EPS_GHEP,ierr)
         call EPSSetFromOptions(EPSelas,ierr)
+        call EPSGetDimensions(EPSelas,nev,ncv,mpd,ierr)
+        allocate(guesses(ncv))
+        call VecGetArrayF90(dofFixElasDist,pdofFixDist,ierr)
+        do i = 1,ncv
+            call VecCreateMPI(MPI_COMM_WORLD,localDOFs*3,PETSC_DETERMINE,&
+                              guesses(i),ierr)
+            call VecSetRandom(guesses(i),rdm,ierr)
+            call VecGetArrayF90(guesses(i),pGuess,ierr)
+            do idof = 1,3*localDOFs
+                if(.not.isnan(pdofFixDist(idof))) then
+                    pGuess(idof) = 0.0_8
+                endif
+            enddo
+            call VecRestoreArrayF90(guesses(i),pGuess,ierr)
+        enddo
+        call VecRestoreArrayF90(dofFixElasDist,pdofFixDist,ierr)
+        call EPSSetInitialSpace(EPSelas,ncv,guesses,ierr)
+        do i = 1,ncv
+            call VecDestroy(guesses(i),ierr)
+        enddo
+        deallocate(guesses)
+        !call EPSSetWhichEigenpairs(EPSelas,EPS_SMALLEST_MAGNITUDE,ierr)
         call EPSSetWhichEigenpairs(EPSelas,EPS_SMALLEST_REAL,ierr)
+
+        call PetscRandomDestroy(rdm,ierr)
     end subroutine
 
     subroutine SolveElasticity
         PetscInt ierr
+        PetscReal normVal
         call KSPSolve(KSPelas, Pelas, Uelas, ierr)
+        call VecNorm(Uelas,NORM_2,normVal,ierr)
+        print*,'UelasVecNormIs',normVal
         !call VecView(Uelas, PETSC_VIEWER_STDOUT_WORLD, ierr)
     end subroutine
 
@@ -3138,7 +3215,7 @@ contains
         character(*), intent(in) :: path, title
         call output_plt_vert_vec1(path,title,Uther,'phi')
     end subroutine
-    
+
     subroutine output_plt_thermal_mode(path,title,imode)
         PetscInt imode
         PetscInt ierr
@@ -3305,6 +3382,121 @@ contains
                 deallocate(obj(i)%N)
             endif
         enddo
+    end subroutine
+
+    !!!!!!!!!!debug!!!!!!!!!!!!
+    subroutine dumpAelasMelas(path)
+        use globals
+        PetscInt ierr,rank,siz
+        PetscViewer viewerM, viewerA
+        character(*) path
+        PetscScalar, pointer :: vcsr(:)
+        Mat localMat
+        PetscInt i,nnz
+        PetscInt,allocatable :: localAdjacencyNum3x(:),ghostAdjacencyNum3x(:)
+
+        allocate(localAdjacencyNum3x(3*localDOFs))
+        allocate(ghostAdjacencyNum3x(3*localDOFs))
+        do i = 1, localDOFs
+            localAdjacencyNum3x(i*3-2:i*3) = localAdjacencyNum(i) * 3
+            ghostAdjacencyNum3x(i*3-2:i*3) = ghostAdjacencyNum(i) * 3
+        enddo
+        nnz = sum(localAdjacencyNum3x)
+
+        call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
+        call MPI_COMM_SIZE(MPI_COMM_WORLD,siz ,ierr)
+        ! call  PetscViewerASCIIOpen(MPI_COMM_WORLD,&
+        !                            trim(path)//'_M.dump',&
+        !                            viewerM,ierr)
+        ! call  PetscViewerASCIIOpen(MPI_COMM_WORLD,&
+        !                            trim(path)//'_A.dump',&
+        !                            viewerA,ierr)
+        ! call PetscViewerPushFormat(viewerM, PETSC_VIEWER_ASCII_COMMON,ierr)
+        ! call PetscViewerPushFormat(viewerA, PETSC_VIEWER_ASCII_COMMON,ierr)
+        ! !call MatView(Aelas,PETSC_VIEWER_STDOUT_WORLD,ierr)
+        ! !call PetscViewerPopFormat(viewerA,ierr)
+        ! call PetscViewerDestroy(viewerA,ierr)
+        ! !call MatView(Melas,PETSC_VIEWER_STDOUT_WORLD,ierr)
+        ! !call PetscViewerPopFormat(viewerM,ierr)
+        ! call PetscViewerDestroy(viewerM,ierr)
+        if(siz .ne. 1) then
+            print*,'dump needs to be single-threaded'
+            stop
+        endif
+        if(rank==0)then
+            ! ! ASCII output
+            ! call MatMPIAIJGetLocalMat(Aelas,MAT_INITIAL_MATRIX,localMat,ierr)
+
+            ! call PetscViewerASCIIOpen(MPI_COMM_WORLD,&
+            !                           trim(path)//'_A.dump',&
+            !                           viewerA,ierr)
+            ! call PetscViewerPushFormat(viewerA, PETSC_VIEWER_ASCII_COMMON,ierr)
+            ! call MatView(localMat,viewerA,ierr)
+            ! call PetscViewerDestroy(viewerA,ierr)
+            ! call MatDestroy(localMat,ierr)
+
+            ! call MatMPIAIJGetLocalMat(Melas,MAT_INITIAL_MATRIX,localMat,ierr)
+
+            ! call PetscViewerASCIIOpen(MPI_COMM_WORLD,&
+            !                           trim(path)//'_M.dump',&
+            !                           viewerM,ierr)
+            ! call PetscViewerPushFormat(viewerM, PETSC_VIEWER_ASCII_COMMON,ierr)
+            ! call MatView(localMat,viewerM,ierr)
+            ! call PetscViewerDestroy(viewerM,ierr)
+            ! call MatDestroy(localMat,ierr)
+            ! !call MatSeqAIJGetArrayF90(localMat,xx_v,ierr)
+            call MatMPIAIJGetLocalMat(Aelas,MAT_INITIAL_MATRIX,localMat,ierr)
+            ! call MatSeqAIJGetArrayF90(localMat,vcsr,ierr)
+            ! close(IOUT2)
+            ! open(IOUT2, file = trim(path)//'_A.dump' , &
+            !      Form = 'Unformatted' , &
+            !      Access = "Stream",  &
+            !      STATUS = "Replace", &
+            !      Action = "Write")
+            ! write(IOUT2) localDOFs*3
+            ! write(IOUT2) localAdjacencyNum3x
+            ! write(IOUT2) vcsr(1:nnz)
+            ! print*,'nnz',nnz,size(vcsr)
+            ! close(IOUT2)
+            ! call MatSeqAIJRestoreArrayF90(localMat,vcsr,ierr)
+            call PetscViewerBinaryOpen(MPI_COMM_WORLD,trim(path)//'_A.dump',&
+                                       FILE_MODE_WRITE,viewerM,ierr)
+            call PetscViewerPushFormat(viewerM,PETSC_VIEWER_BINARY_MATLAB,ierr)
+            call MatView(localMat,viewerM, ierr)
+            call PetscViewerPopFormat(viewerM,ierr)
+            call PetscViewerDestroy(viewerM,ierr)
+
+            call MatDestroy(localMat,ierr)
+
+            call MatMPIAIJGetLocalMat(Melas,MAT_INITIAL_MATRIX,localMat,ierr)
+            ! call MatSeqAIJGetArrayF90(localMat,vcsr,ierr)
+            ! close(IOUT2)
+            ! open(IOUT2, file = trim(path)//'_M.dump' , &
+            !      Form = 'Unformatted' , &
+            !      Access = "Stream",  &
+            !      STATUS = "Replace", &
+            !      Action = "Write")
+            ! write(IOUT2) localDOFs*3
+            ! write(IOUT2) localAdjacencyNum3x
+            ! write(IOUT2) vcsr(1:nnz)
+            ! print*,'nnz',nnz,size(vcsr)
+            ! close(IOUT2)
+            ! call MatSeqAIJRestoreArrayF90(localMat,vcsr,ierr)
+
+            call PetscViewerBinaryOpen(MPI_COMM_WORLD,trim(path)//'_M.dump',&
+                                       FILE_MODE_WRITE,viewerM,ierr)
+            call PetscViewerPushFormat(viewerM,PETSC_VIEWER_BINARY_MATLAB,ierr)
+            call MatView(localMat,viewerM, ierr)
+            call PetscViewerPopFormat(viewerM,ierr)
+            call PetscViewerDestroy(viewerM,ierr)
+            call MatDestroy(localMat,ierr)
+
+        endif
+
+        deallocate(localAdjacencyNum3x)
+        deallocate(ghostAdjacencyNum3x)
+
+        print*,'dump done!'
     end subroutine
 
     !!!!!!!!!!deprecated!!!!!!!!!!

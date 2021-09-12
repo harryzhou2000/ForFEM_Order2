@@ -10,3 +10,6 @@ lib*.a
 *.zip
 *.neu
 *.png
+*.dump*
+*.mat*
+*.asv

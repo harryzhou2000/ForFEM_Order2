@@ -1,12 +1,12 @@
 
-OptFlag=-g
+OptFlag=-O3
 PetscPath=${PETSC_DIR}/include
 PetscBuildPath=${PETSC_DIR}/${PETSC_ARCH}/include
 SlepcPath=${SLEPC_DIR}/include
 SlepcBuildPath=${SLEPC_DIR}/${PETSC_ARCH}/include
 Include=-I"${PetscPath}" -I"${PetscBuildPath}"  -I"${SlepcPath}" -I"${SlepcBuildPath}"
 Module=
-Libs=-lslepc -lpetsc -lsuperlu_dist -llapack -lparmetis -lmetis -lstdc++
+Libs=-lslepc -lprimme -lparpack -larpack -lpetsc -lsuperlu_dist -llapack -lparmetis -lmetis -lstdc++
 FC=mpiifort
 
 Flags:=-cpp ${OptFlag} ${Include} ${Module}

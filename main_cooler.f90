@@ -2,7 +2,6 @@
 #include <slepc/finclude/slepcsys.h>
 program main_cooler
 
-
     use globals
     use fem_order2
     use petscsys
@@ -10,22 +9,25 @@ program main_cooler
     use common_utils
     use elastic_constitution
     implicit none
-    integer ierr, rank
+    integer ierr, rank, i
     real(8) start, end, localstart
 
     call PetscInitialize(PETSC_NULL_CHARACTER,ierr)
     call SlepcInitialize(PETSC_NULL_CHARACTER,ierr)
     call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
-    FILEINP = "./mesh/cooler.neu"
-    
+    ! FILEINP = "./mesh/cooler.neu"
+    FILEINP = "mesh/COOLER_3_TET.neu"
+
     call initializeStatus
     call initializeLib
-    call set_const_thremal_constitution(397.0_8,390e6_8)
-    call set_const_elastic_constitution(1.1e1_8,0.37_8,8900e6_8)
+    ! 10-0.028
+    !    1000
+
+    call set_const_thremal_constitution(397.0_8, 390e6_8 )
+    call set_const_elastic_constitution(1.1e1_8,0.37_8,8900e-12_8)
     call set_expansion_properties(293.15_8, 2.4e-5_8)
     if_dynamic_elas = .true.
     if_dynamic_ther = .true.
-    
 
     if(rank == 0 )then
         call readgfile
@@ -76,6 +78,9 @@ program main_cooler
     !call output_plt_thermal("./out/cooler_ther.plt", "goodstart")
     ! call SolveThermalMode_Initialize
     ! call SolveThermalMode
+    ! do i = 1,nsolvedEigenTher
+    !     call output_plt_thermal_mode("./out/cooler_ther_mode", "goodstart", i-1)
+    ! enddo
 
     !!!!!ELASTIC SOLVE
     if(rank == 0) then
@@ -107,6 +112,14 @@ program main_cooler
     if(rank == 0)then
         print*,'Elastic Setup Time:',MPI_Wtime()-localstart
     endif
+    !call dumpAelasMelas('./out/cooler_elas_S')
+    call SolveElasticMode_Initialize
+    ! elastic mode
+    call SolveElasticMode
+    do i = 1,nsolvedEigenElas
+        call output_plt_elasticity_mode("./out/cooler_elas_mode", "goodstart", i-1)
+    enddo
+
     call SolveElasticity_Initialize
     localstart=MPI_Wtime()
     call SolveElasticity
@@ -114,6 +127,7 @@ program main_cooler
         print*,'Elastic Solve Time:',MPI_Wtime()-localstart
     endif
     !call output_plt_elasticity("./out2_elas.plt", "goodstart")
+
     call GetElasticityUGradient
     call GetStrainStress
     call output_plt_elasticity_all("./out/cooler_elas_all.plt", "goodstart")
