@@ -30,7 +30,7 @@ additional="-ksp_monitor -ksp_type gmres -pc_type asm -sub_ksp_type preonly -sub
 #     ${additional}"
 
     # -sub_ksp_max_it 100 -sub_ksp_rtol 0.5e-4 -sub_ksp_converged_reason\
-additional="-eps_monitor -eps_converged_reason -eps_nev 5 -eps_ncv 20\
+additional="-eps_monitor -eps_converged_reason -eps_nev 200 -eps_ncv 600\
     -eps_type primme -st_pc_type cholesky -st_sub_pc_type cholesky \
     -eps_tol 1e-5 -eps_max_it 20000 \
     ${additional}"
