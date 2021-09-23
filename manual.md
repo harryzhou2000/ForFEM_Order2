@@ -7,6 +7,7 @@ TABLE OF CONTENTS
 - [Overview](#overview)
 - [Numerical Methods](#numerical-methods)
   - [Constructing The Linear Elastic Problem](#constructing-the-linear-elastic-problem)
+  - [Applying Given Displacement (or Temperature) Boundaries](#applying-given-displacement-or-temperature-boundaries)
 - [Module Brief](#module-brief)
     - [**fem_order2** in fem_order2.f90](#fem_order2-in-fem_order2f90)
       - [*Partition Data:*](#partition-data)
@@ -100,7 +101,134 @@ $p$ is only not zero on known-force boundaries, it is a 3d vector field.
 
 $Hx_0$ can be viewed as the payload force caused by elastic basement boundaries. Actually, in the program, force boundaries are performed with the elastic base boundary scheme. As the inputs are $Hx_0$ and $H$, setting $H=0$ (while $x_0\rarr\infty$, which is not the numeric input) means the boundary condition becomes a given force.
 
-The discrete values of $K,M,F$ are integrated on the piecewise polynomials, where (including $N$, $B$) they can actually be decomposed into each element (of volume or face), (for 3d case) we define $K_e,M_e,F_e$, which are the results of integrals performing only in the volume $e$. More over, the ordering of $K_e,M_e,F_e$ are solely consisting the part of $a$ (DOFs on nodes) adjacent to the volume (the other parts are zero in the global matrices and vectors). Therefore, 
+The discrete values of $K,M,F$ are integrated on the piecewise polynomials, where (including $N$, $B$) they can actually be decomposed into each element (of volume or face), (for 3d case) we define $K_e,M_e,F_e$, which are the results of integrals performing only in the volume $e$. More over, the ordering of $K_e,M_e,F_e$ are solely consistent with the part of $a$ (DOFs on nodes) adjacent to the volume (the other parts are zero in the global matrices and vectors). Therefore, the general procedure of assembling the global matrices is: 1. Calculate the local matrices in local order; 2. Find the map from local order to global order and cumulate the values into the global matrix.
+
+Calculation of the local matrices is essentially a integration within the element. Given a proper numerical integration method, i.e. the locations of the integral points and corresponding weights, the integration is iterating through the integral points, calculating desired value on them and cumulating the values by the weights. The differential quantities $dV$ and $d\Gamma$ are different in the physical space than in the element's normalized space, so an additional correction with the Jacobian determinant of the space transformation is needed. Also, when considering space derivatives on the integral points, the Jacobian matrix of the space transformation is needed. We give the detailed calculation formula of $K_e$ as below:
+
+$$
+K_e=\sum_{ip}{B_e^TDB_e|J|iw}\\
+B_e=SJ^{-1}Q_e
+$$
+
+Where $B_e, J, Q_e$ are special values on each integral point and volume, $ip$ denotes the collection of integral points and $iw$ denotes corresponding weight.
+
+$D$is the constitutional matrix mentioned above;
+
+$S$ is the matrix transforming first space derivatives of displacement into strain:
+
+$$
+\begin{bmatrix}
+1&0&0&0&0&0&0&0&0\\
+0&0&0&0&1&0&0&0&0\\
+0&0&0&0&0&0&0&0&1\\
+0&0&0&0&0&\frac{1}{2}&0&\frac{1}{2}&0\\
+0&0&\frac{1}{2}&0&0&0&\frac{1}{2}&0&0\\
+0&\frac{1}{2}&0&\frac{1}{2}&0&0&0&0&0\\
+\end{bmatrix}
+$$
+
+for
+$$
+Sd=\varepsilon\\
+d=\left[
+  \frac{\partial{u}}{\partial{x}} 
+  \frac{\partial{u}}{\partial{y}} 
+  \frac{\partial{u}}{\partial{z}} 
+  \frac{\partial{v}}{\partial{x}} 
+  \frac{\partial{v}}{\partial{y}} 
+  \frac{\partial{v}}{\partial{z}} 
+  \frac{\partial{w}}{\partial{x}} 
+  \frac{\partial{w}}{\partial{y}} 
+  \frac{\partial{w}}{\partial{z}}
+  \right]^T
+  \varepsilon=[
+    \varepsilon_{11}\varepsilon_{22}\varepsilon_{33}
+  \varepsilon_{23}\varepsilon_{31}\varepsilon_{12}]^T
+$$
+
+Jacobian $J$ is defined as:
+
+$$
+J_{ij}=\frac{\partial{x_j}}{\partial{\xi_i}}
+$$
+
+and calculated as
+
+$$
+J_{ij}=coord_{im}dN_{mj}
+$$
+
+Where $coord_{im}$ is the ith spacial dimension and mth local node's coordinate value, $dN_{mj}$ is the mth local nodes's shape function's jth spacial derivative (at this integral point, relative to normalized coordinates $\xi_i$). $coord$ varies with the chosen volume and dN is constant for each kind of volume element (and varies with the integral point).
+
+Matrix $Q_e$ is defined as $Q_{e\ ij}=dN_{ji}$.
+
+In total, apart from information on integration weights and basic relations, to obtain $K_e$, one must know: 1.the coordinates of nodes and 2.derivatives (to $\xi_i$) of shape functions on each point. The former one is to be queried each time entering a new volume, and the latter one is prepared for each type of volume and treated as constants in the assembling routine.
+
+Other matrices and vectors are all treated likewise, the only difference is in the integrand functions. For example, $M_e$ needs $N_e$, which is 0th derivative of shape functions. They don't need $J^{-1}$ for correction, but the $|J|$ from $dV$ is still needed.
+
+Parts of the matrices and vectors also exist on the face integrals, the Jacobian becomes 2x3 rather than 3x3 matrix. The correction for face integral $d\Gamma$ becomes the magnitude for those two 3-d vectors' cross-product. The cross product is also the normal direction for the interpolated surface.
+
+The matrices and vectors used in the heat transfer problems are obtained in similar ways with different integrands and also different number of DOFs.
+
+## Applying Given Displacement (or Temperature) Boundaries
+
+The given force boundaries (given heat flux) or soft basement (given linear surface heat exchange) boundaries are automatically included when calculating the matrices and vectors without modifying those without them. When the elastic basement gives zero stiffness and finite resultant force (finite $Hx_0$) it becomes a given force boundary; while a infinite H and finite x_0 turns it into a given displacement boundary. The matter is that an infinite number (or very large in the actual program) as stiffness does harm to the condition number of the global stiffness matrix, and potentially causes efficiency problems in the linear solver. 
+
+A straightforward way is to simply throw away the fixed DOFs as they are already known, but it causes problems in programming. Adding Lagrangian multipliers is also viable but it also changes the shape of the matrices and data layout. This program applies the simple way of decoupling those DOFs, which means before applying fixed value $v$ to DOF $i$:
+
+$$
+K_0=
+\begin{bmatrix}
+&&&&&k_{1i}&&&&&\\
+&&&&&k_{2i}&&&&&\\
+&&&&&...&&&&&\\
+k_{i1}&k_{i2}&&&...&k_{ii}&...&&&k_{in-1}&k_{in}\\
+&&&&&...&&&&&\\
+&&&&&k_{n-1 i}&&&&&\\
+&&&&&k_{ni}&&&&&\\
+\end{bmatrix}\\\ \\\ \\\ \\
+F_0=
+\begin{bmatrix}
+f_{1}\\
+f_{2}\\
+...\\
+f_{i}\\
+...\\
+f_{n-1}\\
+f_{n}\\
+\end{bmatrix}
+$$
+
+after:
+
+$$
+K_1=
+\begin{bmatrix}
+&&&&&0&&&&&\\
+&&&&&0&&&&&\\
+&&&&&...&&&&&\\
+0&0&&&...&k_{ii}&...&&&0&0\\
+&&&&&...&&&&&\\
+&&&&&0&&&&&\\
+&&&&&0&&&&&\\
+\end{bmatrix}
+$$
+
+and vector:
+$$
+F_0=
+\begin{bmatrix}
+f_{1}-vk_{1i}\\
+f_{2}-vk_{2i}\\
+...\\
+vk_{ii}\\
+...\\
+f_{i-1}-vk_{n-1i}\\
+f_{i}-vk_{ni}\\
+\end{bmatrix}
+$$
+
+While if concerning mass matrix, similar operations are done and the diagonal element $m_{ii}$ is set to a very small value to dramatically increase the causing eigenvalue to avoid the desired modes. 
 
 
 # Module Brief
@@ -217,13 +345,13 @@ Call collectively.
 
 #### subroutine **SetUpThermal_InitializeObjects**
 
-To initialize load vector and stiffness matrix objects for thermal, and do preallocation for the matrix.
+To initialize load vector and stiffness matrix objects for thermal, and do preallocation for the matrix. If if_dynamic_ther is true then preallocate the mass matrix, otherwise the mass matrix is omitted.
 
 Call collectively.
 
 #### subroutine **SetUpThermalPara**
 
-To assemble (integrate) the stiffness matrix and the load vector. Basically doing volume and surface integration.
+To assemble (integrate) the stiffness matrix and the load vector. Basically doing volume and surface integration. If if_dynamic_ther is true then assemble the mass matrix, otherwise the mass matrix is omitted.
 
 Call collectively.
 

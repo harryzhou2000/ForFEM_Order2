@@ -1949,6 +1949,32 @@ contains
 
     end subroutine
 
+    subroutine init_thermalBC_BLOCKED
+        use globals
+        allocate(bcValueTher(NBSETS))
+        allocate(bcTypeTher(NBSETS))
+        allocate(bcValueTher2(NBSETS))
+    end subroutine
+
+    subroutine set_thermalBC_BLOCKED(bid,typeid,flowvalue,coefvalue)
+        use elastic_constitution
+        use globals
+        integer typeid,bid
+        real(8) flowvalue
+        real(8) coefvalue
+        if(bid > NBSETS) then
+            print*,'set_thermalBC_BLOCKED exceed num of NBSET'
+            stop
+        endif
+        bcTypeTher(bid) = typeid
+        if(typeid == 1)then
+            bcValueTher(bid) = flowvalue / (powerUnit/lengthUnit**2)
+        else
+            bcValueTher(bid) = flowvalue / tempUnit
+        endif
+        bcValueTher2(bid) = coefvalue / (powerUnit/lengthUnit**2/tempUnit)
+    end subroutine
+
     !after readgrid initializeLib
     subroutine SetUpThermalBC_BLOCKED
         use globals
@@ -2314,6 +2340,32 @@ contains
         call VecRestoreArrayReadF90(dofFixTher    , pfix0,ierr)
         call IsRestoreIndicesF90(partitionedNumberingIndex, parray, ierr)
         CHKERRA(ierr)
+    end subroutine
+
+    subroutine init_elasticBC_BLOCKED
+        use globals
+        allocate(bcValueElas(NBSETS))
+        allocate(bcTypeElas(NBSETS*3))
+        allocate(bcValueElas2(NBSETS*9))
+    end subroutine
+
+    subroutine set_elasticBC_BLOCKED(bid,typeid,flowvalue,coefvalue)
+        use elastic_constitution
+        use globals
+        integer typeid,bid
+        real(8) flowvalue(3)
+        real(8) coefvalue(9)
+        if(bid > NBSETS) then
+            print*,'set_elasticBC_BLOCKED exceed num of NBSET'
+            stop
+        endif
+        bcTypeElas(bid) = typeid
+        if(typeid == 1)then
+            bcValueElas(bid*3-2:bid) = flowvalue / Eunit ! Eunit is pressureunit
+        else
+            bcValueElas(bid*3-2:bid) = flowvalue / lengthUnit
+        endif
+        bcValueElas2(bid*9-8:bid*9) = coefvalue / (Eunit / lengthUnit)
     end subroutine
 
     !after readgrid initializeLib
@@ -2745,7 +2797,7 @@ contains
             !         stop
             !     endif
             ! enddo
-            
+
             call MatSetValues(Melas, num_node*3, cellDOFs, num_node*3, cellDOFs, cellMat, ADD_VALUES, ierr)
             !print*,i
             !print*,cellMat
@@ -2931,9 +2983,10 @@ contains
         PetscRandom rdm
         PetscScalar,pointer :: pdofFixDist(:), pGuess(:)
         Vec,allocatable::guesses(:)
+        Vec,allocatable::guessesR(:)
         call PetscRandomCreate(MPI_COMM_WORLD,rdm,ierr)
         call PetscRandomSetType(rdm, "rand", ierr)
-        call PetscRandomSetInterval(rdm,1._8-1.0_8,1._8, ierr)
+        call PetscRandomSetInterval(rdm,1._8-2.0_8,1._8, ierr)
 
         call EPSCreate(MPI_COMM_WORLD,EPSelas,ierr)
         call EPSSetOperators(EPSelas,Aelas,Melas,ierr)
@@ -2941,11 +2994,20 @@ contains
         call EPSSetFromOptions(EPSelas,ierr)
         call EPSGetDimensions(EPSelas,nev,ncv,mpd,ierr)
         allocate(guesses(ncv))
+        allocate(guessesR(ncv))
         call VecGetArrayF90(dofFixElasDist,pdofFixDist,ierr)
+
+        ! call KSPCreate(MPI_COMM_WORLD, KSPelas, ierr)
+        ! call KSPSetOperators(KSPelas, Aelas, Aelas, ierr)
+        ! call KSPSetFromOptions(KSPelas, ierr)
+
         do i = 1,ncv
             call VecCreateMPI(MPI_COMM_WORLD,localDOFs*3,PETSC_DETERMINE,&
                               guesses(i),ierr)
+            ! call VecCreateMPI(MPI_COMM_WORLD,localDOFs*3,PETSC_DETERMINE,&
+            !                   guessesR(i),ierr)
             call VecSetRandom(guesses(i),rdm,ierr)
+
             call VecGetArrayF90(guesses(i),pGuess,ierr)
             do idof = 1,3*localDOFs
                 if(.not.isnan(pdofFixDist(idof))) then
@@ -2953,17 +3015,27 @@ contains
                 endif
             enddo
             call VecRestoreArrayF90(guesses(i),pGuess,ierr)
+            call VecDuplicate(guesses(i),guessesR(i), ierr)
+            ! call MatMult(Melas, guesses(i), guessesR(i),ierr)
+            ! print*,'First IPower solving #', i
+            ! call KSPSolve(KSPelas, guessesR(i), guesses(i),ierr)
         enddo
+        
+        
+
         call VecRestoreArrayF90(dofFixElasDist,pdofFixDist,ierr)
         call EPSSetInitialSpace(EPSelas,ncv,guesses,ierr)
         do i = 1,ncv
             call VecDestroy(guesses(i),ierr)
+            call VecDestroy(guessesR(i),ierr)
         enddo
         deallocate(guesses)
+        deallocate(guessesR)
         !call EPSSetWhichEigenpairs(EPSelas,EPS_SMALLEST_MAGNITUDE,ierr)
         call EPSSetWhichEigenpairs(EPSelas,EPS_SMALLEST_REAL,ierr)
 
         call PetscRandomDestroy(rdm,ierr)
+        ! call KSPDestroy(KSPelas,ierr)
     end subroutine
 
     subroutine SolveElasticity

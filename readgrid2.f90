@@ -14,6 +14,7 @@ subroutine readgfile
 
     do I = 1,NUMNP
         read(IIN,'(10X,3E20.11)') COORD(1:3,I)
+        !COORD(1:3,I) = COORD(1:3,I)
     enddo
 
     read(IIN,*)

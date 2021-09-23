@@ -8,42 +8,61 @@ module elastic_constitution
     Index E_poly_siz,nu_poly_siz! order of polynomial is poly_siz-1
     Scalar rho_uni
 
-    Scalar baseTemp, expansionRate 
+    Scalar baseTemp, expansionRate
     Scalar k_ther(3,3), heat_cap_uni
 
+    Scalar lengthUnit, massUnit, timeUnit, tempUnit
+    Scalar forceUnit, energyUnit, powerUnit
+    Scalar kunit, rhounit,Eunit,capunit
 contains
+    subroutine set_Unit_LTF(len, time, force)
+        Scalar len, time, force
+        lengthUnit = len
+        timeUnit = time
+        massUnit = force/(lengthUnit/timeUnit**2)
+        tempUnit = 1.0
 
-    subroutine set_const_elastic_constitution(E,nu,rho)
-        Scalar,intent(in) :: E,nu,rho
-        E_poly_siz=1
-        E_poly(1:1) = E
-        nu_poly_siz=1
-        nu_poly(1:1) = nu
-        rho_uni = rho
+        forceUnit = force
+        energyUnit = forceUnit * lengthUnit
+        powerUnit = energyUnit/timeUnit
+        kunit = powerUnit/(tempUnit * lengthUnit)
+        capunit = energyUnit/(massUnit*tempUnit)
+        Eunit = energyUnit/(lengthUnit**3)
+        rhounit = massUnit/(lengthUnit**3)
+        print*,'Units ',kunit,capunit,Eunit,rhounit
     end subroutine
 
-    subroutine set_const_thremal_constitution(k, c)
+    subroutine set_const_elastic_constitution(E,nu,rho) ! now input is IS   
+        Scalar,intent(in) :: E,nu,rho
+        E_poly_siz=1
+        E_poly(1:1) = E / Eunit
+        nu_poly_siz=1
+        nu_poly(1:1) = nu
+        rho_uni = rho / rhounit
+    end subroutine
+
+    subroutine set_const_thremal_constitution(k, c) ! now input is IS
         Scalar,intent(in) :: k,c
         k_ther = 0.0_8
-        k_ther(1,1) = k
-        k_ther(2,2) = k
-        k_ther(3,3) = k
-        heat_cap_uni = c
+        k_ther(1,1) = k / kunit
+        k_ther(2,2) = k / kunit 
+        k_ther(3,3) = k / kunit
+        heat_cap_uni = c / capunit
     end subroutine
 
     subroutine set_copper_elastic_constitution
         E_poly_siz=5
         E_poly(1:5) = (/139.059524545458_8, -0.0134613936001288_8, &
                         -0.000120250376148280_8, 1.91953636792926e-07_8 ,-1.20519845938051e-10_8/)
-        E_poly(1:5) = E_poly(1:5) * 1e3_8
+        E_poly(1:5) = E_poly(1:5) * 1e9_8 / Eunit
         nu_poly_siz=1
         nu_poly(1:1) = 0.37_8
-        rho_uni = 8900e-12_8
+        rho_uni = 8900e-12_8 / rhounit
     end subroutine
 
     subroutine set_expansion_properties(baseTemprature, materialExpasionRate)
         Scalar,intent(in) :: baseTemprature,materialExpasionRate
-        baseTemp = baseTemprature
+        baseTemp = baseTemprature / tempUnit
         expansionRate = materialExpasionRate
     end subroutine
 
