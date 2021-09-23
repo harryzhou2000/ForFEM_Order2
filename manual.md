@@ -8,6 +8,7 @@ TABLE OF CONTENTS
 - [Numerical Methods](#numerical-methods)
   - [Constructing The Linear Elastic Problem](#constructing-the-linear-elastic-problem)
   - [Applying Given Displacement (or Temperature) Boundaries](#applying-given-displacement-or-temperature-boundaries)
+- [Case Building](#case-building)
 - [Module Brief](#module-brief)
     - [**fem_order2** in fem_order2.f90](#fem_order2-in-fem_order2f90)
       - [*Partition Data:*](#partition-data)
@@ -230,6 +231,30 @@ $$
 
 While if concerning mass matrix, similar operations are done and the diagonal element $m_{ii}$ is set to a very small value to dramatically increase the causing eigenvalue to avoid the desired modes. 
 
+# Case Building
+
+The program currently uses Fortran90 as a control stream for certain case. Instructions on the controlling is given:
+
+Assume one has mesh.neu file for input and homogeneous boundary condition to apply, first:
+
+    #include <petsc/finclude/petscsys.h>
+    #include <slepc/finclude/slepcsys.h>
+    program main_cooler
+      use globals
+      use fem_order2
+      use petscsys
+      use slepcsys
+      use common_utils
+      use elastic_constitution
+      implicit none
+      integer ierr, rank, i
+
+      ...
+
+    end program
+
+in order contain proper dependencies.
+
 
 # Module Brief
 
@@ -243,7 +268,7 @@ Created for initial partitioning of the mesh, primarily created in **SetUpPartit
 
 #### *Cell Partition Data:*
 
-Created with the help of Partition Data, primarily created in **DoCellPartition**. Used for distributing the cell data.
+Created with the help of Partition Data, primarily created in  **DoCellPartition**. Used for distributing the cell data.
 
 #### *Partitioned Mesh:*
 

@@ -2983,10 +2983,10 @@ contains
         PetscRandom rdm
         PetscScalar,pointer :: pdofFixDist(:), pGuess(:)
         Vec,allocatable::guesses(:)
-        Vec,allocatable::guessesR(:)
+        ! Vec,allocatable::guessesR(:)
         call PetscRandomCreate(MPI_COMM_WORLD,rdm,ierr)
         call PetscRandomSetType(rdm, "rand", ierr)
-        call PetscRandomSetInterval(rdm,1._8-2.0_8,1._8, ierr)
+        call PetscRandomSetInterval(rdm,1._8-1.0_8,1._8, ierr)
 
         call EPSCreate(MPI_COMM_WORLD,EPSelas,ierr)
         call EPSSetOperators(EPSelas,Aelas,Melas,ierr)
@@ -2994,7 +2994,7 @@ contains
         call EPSSetFromOptions(EPSelas,ierr)
         call EPSGetDimensions(EPSelas,nev,ncv,mpd,ierr)
         allocate(guesses(ncv))
-        allocate(guessesR(ncv))
+        ! allocate(guessesR(ncv))
         call VecGetArrayF90(dofFixElasDist,pdofFixDist,ierr)
 
         ! call KSPCreate(MPI_COMM_WORLD, KSPelas, ierr)
@@ -3008,14 +3008,14 @@ contains
             !                   guessesR(i),ierr)
             call VecSetRandom(guesses(i),rdm,ierr)
 
-            call VecGetArrayF90(guesses(i),pGuess,ierr)
-            do idof = 1,3*localDOFs
-                if(.not.isnan(pdofFixDist(idof))) then
-                    pGuess(idof) = 0.0_8
-                endif
-            enddo
-            call VecRestoreArrayF90(guesses(i),pGuess,ierr)
-            call VecDuplicate(guesses(i),guessesR(i), ierr)
+            ! call VecGetArrayF90(guesses(i),pGuess,ierr)
+            ! do idof = 1,3*localDOFs
+            !     if(.not.isnan(pdofFixDist(idof))) then
+            !         pGuess(idof) = 0.0_8
+            !     endif
+            ! enddo
+            ! call VecRestoreArrayF90(guesses(i),pGuess,ierr)
+            ! call VecDuplicate(guesses(i),guessesR(i), ierr)
             ! call MatMult(Melas, guesses(i), guessesR(i),ierr)
             ! print*,'First IPower solving #', i
             ! call KSPSolve(KSPelas, guessesR(i), guesses(i),ierr)
@@ -3027,11 +3027,11 @@ contains
         call EPSSetInitialSpace(EPSelas,ncv,guesses,ierr)
         do i = 1,ncv
             call VecDestroy(guesses(i),ierr)
-            call VecDestroy(guessesR(i),ierr)
+            ! call VecDestroy(guessesR(i),ierr)
         enddo
         deallocate(guesses)
-        deallocate(guessesR)
-        !call EPSSetWhichEigenpairs(EPSelas,EPS_SMALLEST_MAGNITUDE,ierr)
+        ! deallocate(guessesR)
+        ! call EPSSetWhichEigenpairs(EPSelas,EPS_SMALLEST_MAGNITUDE,ierr)
         call EPSSetWhichEigenpairs(EPSelas,EPS_SMALLEST_REAL,ierr)
 
         call PetscRandomDestroy(rdm,ierr)
