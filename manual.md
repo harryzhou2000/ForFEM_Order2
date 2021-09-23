@@ -88,11 +88,11 @@ $\Omega$ is the domain of definition, and $dV$ denotes its differential. $\parti
 
 In the formulae above, $B$ is the function transforming $a$ into the interpolated strain field (using a as the right vector), where $B(x,y,z)_{ij}a_j=e(x,y,z)_i$, and $i=1,2,...,6$ is the subscript for the components of the strain vector, where the transposing and matrix products are on the $i,j$ subscripts.
 
-$D=D_{ij}$ is the 6x6 constitutional relation transforming strain into stress, where $\sigma_i=D_{ij}e_j$.
+$D=D_{ij}$ is the 6x6 constitutional relation trnasforming strain into stress, where $\sigma_i=D_{ij}e_j$.
 
 $N$ transforms $a$ into the interpolated displacement field, it's definition is similar with B, where $N(x,y,z)_{ij}a_j=disp(x,y,z)_i\equiv[u,v,w]^T(x,y,z)_i$.
 
-$H$ is the 3x3 matrix defining the stiffness of a linearly elastic basement, (not a scalar instead of a matrix for the stiffness could very likely be anisotropic), transforming displacement form base-point $x_0$ to facial force. $H$ is zero on the boundaries not defined as a elastic basement. $H$ should be symmetric and positive semidefinite to maintain correct physical meaning, that is, it is actually defined by its 3 eigenvalues and 3 eigenvectors.
+$H$ is the 3x3 matrix defining the stiffness of a linearly elastic basement, (not a scalar instead of a matrix for the stiffness could very likely be anistrophic), transforming displacement form basepoint $x_0$ to facial force. $H$ is zero on the boundaries not defined as a elastic basement. $H$ should be symmetric and positive semidefinite to maintain correct physical meaning, that is, it is acuatlly defined by its 3 eigenvalues and 3 eigenvectors.
 
 $\rho$ is the density field, defined as a scalar field.
 
@@ -254,6 +254,7 @@ Assume one has mesh.neu file for input and homogeneous boundary condition to app
     end program
 
 in order contain proper dependencies.
+The discrete values of $K,M,F$ are integrated on the peicewise polinomials, where (including $N$, $B$) they can actually be decomposed into each element (of volume or face), (for 3d case) we define $K_e,M_e,F_e$, which are the results of integrals performing only in the volume $e$. More over, the ordering of $K_e,M_e,F_e$ are solely consisting the part of $a$ (DOFs on nodes) adjacent to the volume (the other parts are zero in the global matrices and vectors). Therefo re, 
 
 
 # Module Brief

@@ -11,5 +11,5 @@ lib*.a
 *.neu
 *.png
 *.dump*
-*.mat*
+*.mat
 *.asv

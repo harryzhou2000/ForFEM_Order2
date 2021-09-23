@@ -23,7 +23,7 @@ program main_cooler
     ! 10-0.028
     !    1000
 
-    call set_Unit_LTF(2.8e-3_8,1.0e-3_8,1.0_8)
+    call set_Unit_LTF(2.8e-3_8,1.0_8,1.0_8)
     ! call set_const_thremal_constitution(400.0_8, 390e6_8 )
     ! call set_const_elastic_constitution(1.1e5_8,0.37_8,8900e-12_8)
     ! call set_expansion_properties(293.15_8, 2.4e-5_8)
@@ -79,8 +79,8 @@ program main_cooler
     !!!!!ELASTIC SOLVE
     if(rank == 0) then
         call init_elasticBC_BLOCKED
-        call set_elasticBC_BLOCKED(1, 0, (/0.0_8,0.0_8,0.0_8/), reshape(eye3x3(),(/9/)) * 1e2)
-        call set_elasticBC_BLOCKED(2, 1, (/0.0_8,0.0_8,0.0_8/), &
+        set_elasticBC_BLOCKED(1, 0, (/0.0_8,0.0_8,0.0_8/), reshape(eye3x3(),(/9/)) * 1e2)
+        set_elasticBC_BLOCKED(2, 1, (/0.0_8,0.0_8,0.0_8/), &
                               (/50.0000000000000,50.0000000000000,0.,50.0000000000000,50.0000000000000,0.,0.,0.,0./)* 0.0_8)
     endif
     localstart=MPI_Wtime()
@@ -91,13 +91,12 @@ program main_cooler
         print*,'Elastic Setup Time:',MPI_Wtime()-localstart
     endif
     ! call dumpAelasMelas('./out/cooler_elas_origin')
-    
-    ! elastic mode
-    call SolveElasticMode_Initialize
-    call SolveElasticMode
-    do i = 1,nsolvedEigenElas
-        call output_plt_elasticity_mode("./out/cooler_elas_mode", "goodstart", i-1)
-    enddo
+    ! call SolveElasticMode_Initialize
+    ! ! elastic mode
+    ! call SolveElasticMode
+    ! do i = 1,nsolvedEigenElas
+    !     call output_plt_elasticity_mode("./out/cooler_elas_mode", "goodstart", i-1)
+    ! enddo
 
     call SolveElasticity_Initialize
     localstart=MPI_Wtime()

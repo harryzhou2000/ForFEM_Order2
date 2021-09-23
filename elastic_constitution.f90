@@ -32,6 +32,7 @@ contains
         print*,'Units ',kunit,capunit,Eunit,rhounit
     end subroutine
 
+    ! E is Young's modulus , nu is poission ratio, rho is mass density
     subroutine set_const_elastic_constitution(E,nu,rho) ! now input is IS   
         Scalar,intent(in) :: E,nu,rho
         E_poly_siz=1
@@ -41,6 +42,7 @@ contains
         rho_uni = rho / rhounit
     end subroutine
 
+    ! k is heat conductivity, c is heat capacity
     subroutine set_const_thremal_constitution(k, c) ! now input is IS
         Scalar,intent(in) :: k,c
         k_ther = 0.0_8

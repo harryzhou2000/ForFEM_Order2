@@ -20,8 +20,8 @@ program main_cooler
     call initializeLib
     call set_const_thremal_constitution(397.0_8,390e6_8)
     call set_const_elastic_constitution(1.1e5_8,0.37_8,8900e-12_8)
-    call set_expansion_properties(293.15_8, 2.4e-5_8)
-    !call set_expansion_properties(293.15_8, 0.0e-5_8)
+    ! call set_expansion_properties(293.15_8, 2.4e-5_8)
+    call set_expansion_properties(293.15_8, 0.0e-5_8)
     if_dynamic_elas = .true.
     if_dynamic_ther = .true.
 
@@ -58,8 +58,8 @@ program main_cooler
         ! bcValueTher2(1) = 1e6
         bcTypeTher(2) = 1
         bcValueTher(2) = 0.0_8
-        bcTypeTher(3) = 1
-        bcValueTher(3) = 100e-3_8!473.15_8
+        bcTypeTher(3) = 0
+        bcValueTher(3) = 473.15_8
         ! bcTypeTher(3) = 1
         ! bcValueTher(3) = 1e6*473.15_8
         ! bcValueTher2(3) = 1e6
